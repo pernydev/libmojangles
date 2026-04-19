@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "cd devserver && bun run dev",
     "test": "bun test",
-    "test:visual": "bun test tests/visual/visual.test.ts"
+    "test:visual": "bun test tests/visual/visual.test.ts",
+    "generate-headers": "bun run scripts/generate-headers.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

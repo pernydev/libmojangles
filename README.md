@@ -2,7 +2,7 @@
 
 A TypeScript library that recreates Minecraft's font rendering stack for the web, pixel-perfect.
 
-## Features
+<img src="headers/features.png" alt="Features">
 
 - **Resource Pack Support** — Load Minecraft resource packs to use custom fonts, textures, and font definitions
 - **Shader Pipeline** — Uses Minecraft's core shaders (vertex + fragment); supports custom shaders via resource packs
@@ -10,7 +10,7 @@ A TypeScript library that recreates Minecraft's font rendering stack for the web
 - **Component Bounding Boxes** — Get precise bounding boxes for each text component, useful for hit detection and tooltips
 - **WebGL2 Rendering** — Hardware-accelerated text rendering with proper Unicode and bitmap font support
 
-## Installation
+<img src="headers/installation.png" alt="Installation">
 
 ```bash
 bun add libmojangles
@@ -18,7 +18,7 @@ bun add libmojangles
 npm install libmojangles
 ```
 
-## Quick Start
+<img src="headers/quick-start.png" alt="Quick Start">
 
 ```typescript
 import { createLibmojangles, ResourcePackZIP } from "libmojangles";
@@ -40,7 +40,7 @@ lib.drawText("Hello World!", 10, 10, { scale: 2 });
 lib.renderer.endFrame();
 ```
 
-## Text Components
+<img src="headers/text-components.png" alt="Text Components">
 
 Libmojangles supports Minecraft's JSON text component format:
 
@@ -56,7 +56,7 @@ lib.drawText(
 
 Supported properties: `text`, `extra`, `color`, `bold`, `italic`, `underlined`, `strikethrough`, `obfuscated`, `font`
 
-## API Overview
+<img src="headers/api-overview.png" alt="API Overview">
 
 ### `createLibmojangles(options)`
 
@@ -80,7 +80,7 @@ Creates a new Libmojangles instance.
 | `resize(width, height)`          | Resize the renderer                                                               |
 | `dispose()`                      | Clean up resources                                                                |
 
-## Development
+<img src="headers/development.png" alt="Development">
 
 ```bash
 # Install dependencies
@@ -93,6 +93,6 @@ bun run dev
 bun test
 ```
 
-## Resource Packs
+<img src="headers/resource-packs.png" alt="Resource Packs">
 
 You need Minecraft's vanilla assets or a compatible resource pack. The library expects the standard Minecraft resource pack structure:
