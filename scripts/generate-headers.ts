@@ -18,9 +18,10 @@ const HEADERS = [
   { name: "resource-packs", text: "Resource Packs" },
 ];
 
-const SCALE = 2;
+const SCALE = 3;
 const PADDING_X = 0;
-const PADDING_Y = 8;
+const PADDING_TOP = 16;
+const PADDING_BOTTOM = 8;
 
 function trimImage(inputPath: string, outputPath: string): void {
   const data = fs.readFileSync(inputPath);
@@ -61,13 +62,13 @@ function trimImage(inputPath: string, outputPath: string): void {
   }
 
   const newWidth = maxX - minX + 1 + PADDING_X * 2;
-  const newHeight = maxY - minY + 1 + PADDING_Y * 2;
+  const newHeight = maxY - minY + 1 + PADDING_TOP + PADDING_BOTTOM;
   const newPng = new PNG({ width: newWidth, height: newHeight });
 
   for (let y = 0; y < newHeight; y++) {
     for (let x = 0; x < newWidth; x++) {
       const srcX = minX + x - PADDING_X;
-      const srcY = minY + y - PADDING_Y;
+      const srcY = minY + y - PADDING_TOP;
       const dstIdx = (newWidth * y + x) * 4;
 
       if (srcX >= 0 && srcX < png.width && srcY >= 0 && srcY < png.height) {
