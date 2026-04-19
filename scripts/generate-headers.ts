@@ -8,14 +8,27 @@ const ROOT_DIR = path.resolve(__dirname, "..");
 const DEVSERVER_DIR = path.join(ROOT_DIR, "devserver");
 const HEADERS_DIR = path.join(ROOT_DIR, "headers");
 
+const SMALLCAPS: Record<string, string> = {
+  a: "ᴀ", b: "ʙ", c: "ᴄ", d: "ᴅ", e: "ᴇ", f: "ғ", g: "ɢ", h: "ʜ", i: "ɪ",
+  j: "ᴊ", k: "ᴋ", l: "ʟ", m: "ᴍ", n: "ɴ", o: "ᴏ", p: "ᴘ", q: "ǫ", r: "ʀ",
+  s: "s", t: "ᴛ", u: "ᴜ", v: "ᴠ", w: "ᴡ", x: "x", y: "ʏ", z: "ᴢ",
+  A: "ᴀ", B: "ʙ", C: "ᴄ", D: "ᴅ", E: "ᴇ", F: "ғ", G: "ɢ", H: "ʜ", I: "ɪ",
+  J: "ᴊ", K: "ᴋ", L: "ʟ", M: "ᴍ", N: "ɴ", O: "ᴏ", P: "ᴘ", Q: "ǫ", R: "ʀ",
+  S: "s", T: "ᴛ", U: "ᴜ", V: "ᴠ", W: "ᴡ", X: "x", Y: "ʏ", Z: "ᴢ",
+};
+
+function toSmallcaps(text: string): string {
+  return text.split("").map(c => SMALLCAPS[c] ?? c).join("");
+}
+
 const HEADERS = [
-  { name: "features", text: "Features" },
-  { name: "installation", text: "Installation" },
-  { name: "quick-start", text: "Quick Start" },
-  { name: "text-components", text: "Text Components" },
-  { name: "api-overview", text: "API Overview" },
-  { name: "development", text: "Development" },
-  { name: "resource-packs", text: "Resource Packs" },
+  { name: "features", text: toSmallcaps("Features") },
+  { name: "installation", text: toSmallcaps("Installation") },
+  { name: "quick-start", text: toSmallcaps("Quick Start") },
+  { name: "text-components", text: toSmallcaps("Text Components") },
+  { name: "api-overview", text: toSmallcaps("API Overview") },
+  { name: "development", text: toSmallcaps("Development") },
+  { name: "resource-packs", text: toSmallcaps("Resource Packs") },
 ];
 
 const SCALE = 3;
