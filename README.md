@@ -2,6 +2,8 @@
 
 A TypeScript library that recreates Minecraft's font rendering stack for the web, pixel-perfect.
 
+> **Note:** This project has been mostly developed by LLMs, but tested heavily against the game.
+
 <img src="https://forgejo.perny.dev/perny/libmojangles/media/branch/master/headers/features.png" alt="Features">
 
 - **Resource Pack Support** — Load Minecraft resource packs to use custom fonts, textures, and font definitions
