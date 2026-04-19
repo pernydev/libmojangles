@@ -146,7 +146,7 @@ async function main() {
     console.log(`  Generating: ${header.name}`);
 
     const config = {
-      text: { text: header.text, color: "white" },
+      text: { text: header.text, color: "gold" },
       viewport: { width: 800, height: 100, guiScale: SCALE },
       position: { x: 0, y: 0, centerX: false },
       resourcePackUrls: [],
