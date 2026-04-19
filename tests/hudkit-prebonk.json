@@ -1,0 +1,22 @@
+{
+  "text": "",
+  "extra": [
+    {
+      "text": "",
+      "font": "hudkit:space"
+    },
+    {
+      "text": "",
+      "extra": [
+        {
+          "text": "Hudkit is awesome!",
+          "font": "hudkit:hud_text_bottom_center_-35_0"
+        }
+      ]
+    },
+    {
+      "text": "",
+      "font": "hudkit:space"
+    }
+  ]
+}

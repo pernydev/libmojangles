@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>libmojangles playground</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #1a1a1a;
+        font-family: system-ui, -apple-system, sans-serif;
+        color: #e0e0e0;
+      }
+      #app {
+        display: flex;
+        width: 100%;
+        height: 100%;
+      }
+      #sidebar {
+        width: 380px;
+        min-width: 380px;
+        height: 100%;
+        background: #252525;
+        border-right: 1px solid #333;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+      #sidebar.collapsed {
+        width: 0;
+        min-width: 0;
+        border-right: none;
+      }
+      #sidebar.collapsed > * {
+        display: none;
+      }
+      #canvas-container {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+      #debug-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        z-index: 10;
+      }
+      #toggle-sidebar {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        z-index: 100;
+        background: #333;
+        border: 1px solid #444;
+        color: #e0e0e0;
+        padding: 6px 10px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      #toggle-sidebar:hover {
+        background: #444;
+      }
+      .section {
+        padding: 12px;
+        border-bottom: 1px solid #333;
+      }
+      .section.collapsible .section-title {
+        cursor: pointer;
+        user-select: none;
+      }
+      .section.collapsible .section-title::before {
+        content: "▼ ";
+        font-size: 10px;
+      }
+      .section.collapsible.collapsed .section-title::before {
+        content: "▶ ";
+      }
+      .section.collapsible.collapsed .section-content {
+        display: none;
+      }
+      .section-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #888;
+        margin-bottom: 8px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        margin-bottom: 4px;
+        color: #aaa;
+      }
+      input[type="number"], select {
+        width: 100%;
+        padding: 6px 8px;
+        background: #1a1a1a;
+        border: 1px solid #444;
+        border-radius: 4px;
+        color: #e0e0e0;
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+      input[type="number"]:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: #666;
+      }
+      textarea {
+        width: 100%;
+        padding: 8px;
+        background: #1a1a1a;
+        border: 1px solid #444;
+        border-radius: 4px;
+        color: #e0e0e0;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 11px;
+        resize: vertical;
+        tab-size: 2;
+      }
+      textarea.text-input {
+        min-height: 100px;
+      }
+      textarea.shader-input {
+        min-height: 150px;
+        font-size: 10px;
+      }
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .checkbox-row input[type="checkbox"] {
+        margin: 0;
+      }
+      .checkbox-row label {
+        margin: 0;
+        cursor: pointer;
+      }
+      button {
+        padding: 8px 12px;
+        background: #3a3a3a;
+        border: 1px solid #444;
+        border-radius: 4px;
+        color: #e0e0e0;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      button:hover {
+        background: #444;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      button.primary {
+        background: #2563eb;
+        border-color: #1d4ed8;
+      }
+      button.primary:hover {
+        background: #1d4ed8;
+      }
+      .error {
+        color: #ef4444;
+        font-size: 11px;
+        margin-top: 4px;
+        word-break: break-word;
+      }
+      .success {
+        color: #22c55e;
+        font-size: 11px;
+        margin-top: 4px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+      .row > * {
+        flex: 1;
+      }
+      #status {
+        padding: 8px 12px;
+        background: #1a1a1a;
+        font-size: 12px;
+        color: #888;
+        margin-top: auto;
+      }
+      .file-input-wrapper {
+        position: relative;
+        margin-bottom: 8px;
+      }
+      .file-input-wrapper input[type="file"] {
+        position: absolute;
+        left: 0;
+        top: 0;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+      }
+      .file-input-label {
+        display: block;
+        padding: 8px 12px;
+        background: #3a3a3a;
+        border: 1px dashed #555;
+        border-radius: 4px;
+        text-align: center;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .file-input-label:hover {
+        background: #444;
+        border-color: #666;
+      }
+      .pack-list {
+        margin-bottom: 8px;
+      }
+      .pack-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 8px;
+        background: #1a1a1a;
+        border-radius: 4px;
+        margin-bottom: 4px;
+        font-size: 12px;
+      }
+      .pack-item .pack-name {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .pack-item button {
+        padding: 2px 6px;
+        font-size: 11px;
+        margin-left: 8px;
+      }
+      .shader-tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 8px;
+      }
+      .shader-tab {
+        padding: 4px 8px;
+        background: #1a1a1a;
+        border: 1px solid #444;
+        border-radius: 4px 4px 0 0;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      .shader-tab.active {
+        background: #333;
+        border-bottom-color: #333;
+      }
+      .shader-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .info-text {
+        font-size: 11px;
+        color: #666;
+        margin-bottom: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="sidebar">
+        <div class="section">
+          <div class="section-title">Display</div>
+          <div class="section-content">
+            <div class="row">
+              <div>
+                <label for="gui-scale">GUI Scale</label>
+                <input type="number" id="gui-scale" value="3" min="1" max="10" step="1">
+              </div>
+              <div>
+                <label for="bg-color">Background</label>
+                <select id="bg-color">
+                  <option value="#000000">Black</option>
+                  <option value="#1a1a1a">Dark Gray</option>
+                  <option value="#808080">Gray</option>
+                  <option value="#ffffff">White</option>
+                  <option value="checker">Checker</option>
+                </select>
+              </div>
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="show-debug">
+              <label for="show-debug">Show bounding boxes</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="section collapsible">
+          <div class="section-title">Resource Packs</div>
+          <div class="section-content">
+            <p class="info-text">Upload a resource pack (.zip) to load custom fonts, textures, and shaders. Packs override vanilla assets.</p>
+            <div id="pack-list" class="pack-list"></div>
+            <div class="file-input-wrapper">
+              <div class="file-input-label">Drop or click to upload .zip</div>
+              <input type="file" id="pack-upload" accept=".zip">
+            </div>
+            <div id="pack-status"></div>
+          </div>
+        </div>
+
+        <div class="section collapsible">
+          <div class="section-title">Shader Editor</div>
+          <div class="section-content">
+            <p class="info-text">Editing: minecraft:rendertype_text (.vsh/.fsh)</p>
+            <div class="shader-tabs">
+              <div class="shader-tab active" data-tab="vertex">Vertex</div>
+              <div class="shader-tab" data-tab="fragment">Fragment</div>
+            </div>
+            <textarea id="vertex-shader" class="shader-input" spellcheck="false"></textarea>
+            <textarea id="fragment-shader" class="shader-input" spellcheck="false" style="display:none;"></textarea>
+            <div id="shader-error" class="error"></div>
+            <div class="shader-actions">
+              <button id="compile-shader" class="primary">Compile</button>
+              <button id="reset-shader">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Text Component</div>
+          <div class="section-content">
+            <textarea id="text-input" class="text-input" spellcheck="false">{
+  "extra": [
+    { "text": "Hello " },
+    { "text": "World!", "color": "gold", "bold": true }
+  ]
+}</textarea>
+            <div id="text-error" class="error"></div>
+          </div>
+        </div>
+
+        <div class="section collapsible collapsed">
+          <div class="section-title">Position</div>
+          <div class="section-content">
+            <div class="row">
+              <div>
+                <label for="text-x">X (GUI)</label>
+                <input type="number" id="text-x" value="10">
+              </div>
+              <div>
+                <label for="text-y">Y (GUI)</label>
+                <input type="number" id="text-y" value="10">
+              </div>
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="center-x" checked>
+              <label for="center-x">Center horizontally</label>
+            </div>
+          </div>
+        </div>
+
+        <div id="status">Ready</div>
+      </div>
+      <div id="canvas-container">
+        <button id="toggle-sidebar">☰</button>
+        <canvas id="canvas"></canvas>
+        <canvas id="debug-canvas"></canvas>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

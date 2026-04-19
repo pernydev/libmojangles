@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visual Test Diff Viewer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    .controls {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #2a2a2a;
+      padding: 12px 20px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      z-index: 100;
+      border-bottom: 1px solid #444;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 14px;
+      color: #aaa;
+    }
+
+    select, button {
+      background: #3a3a3a;
+      border: 1px solid #555;
+      color: #e0e0e0;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    select:hover, button:hover {
+      background: #4a4a4a;
+    }
+
+    button.active {
+      background: #0066cc;
+      border-color: #0077ee;
+    }
+
+    #zoomLevel {
+      min-width: 50px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    #cursorPos {
+      font-family: monospace;
+      min-width: 80px;
+    }
+
+    .viewer-container {
+      margin-top: 60px;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      overflow: auto;
+    }
+
+    .zoom-container {
+      transform-origin: center center;
+      transition: transform 0.1s ease-out;
+    }
+
+    .zoom-container.panning {
+      cursor: grabbing;
+    }
+
+    .zoom-container.can-pan {
+      cursor: grab;
+    }
+
+    .compare-wrapper {
+      position: relative;
+      overflow: hidden;
+      border: 2px solid #444;
+      border-radius: 8px;
+      background: #000;
+    }
+
+    .image-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .image-layer img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .reference-layer {
+      z-index: 1;
+    }
+
+    .actual-layer {
+      z-index: 2;
+    }
+
+    .slider {
+      position: absolute;
+      z-index: 10;
+      background: rgba(255,255,255,0.8);
+    }
+
+    .slider.horizontal {
+      width: 2px;
+      height: 100%;
+      cursor: ew-resize;
+      top: 0;
+    }
+
+    .slider.vertical {
+      width: 100%;
+      height: 2px;
+      cursor: ns-resize;
+      left: 0;
+    }
+
+    .slider-handle {
+      position: absolute;
+      background: #fff;
+      border-radius: 50%;
+      width: 14px;
+      height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    }
+
+    .slider.horizontal .slider-handle {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .slider.vertical .slider-handle {
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .slider-handle::before,
+    .slider-handle::after {
+      content: '';
+      position: absolute;
+      background: #333;
+    }
+
+    .slider.horizontal .slider-handle::before,
+    .slider.horizontal .slider-handle::after {
+      width: 1px;
+      height: 5px;
+    }
+
+    .slider.horizontal .slider-handle::before {
+      left: 4px;
+    }
+
+    .slider.horizontal .slider-handle::after {
+      right: 4px;
+    }
+
+    .slider.vertical .slider-handle::before,
+    .slider.vertical .slider-handle::after {
+      width: 5px;
+      height: 1px;
+    }
+
+    .slider.vertical .slider-handle::before {
+      top: 4px;
+    }
+
+    .slider.vertical .slider-handle::after {
+      bottom: 4px;
+    }
+
+    .labels {
+      position: absolute;
+      z-index: 5;
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      padding: 10px;
+      pointer-events: none;
+    }
+
+    .labels.horizontal {
+      top: 10px;
+    }
+
+    .labels.vertical {
+      top: 10px;
+      flex-direction: column;
+      height: calc(100% - 20px);
+      width: auto;
+      left: 10px;
+    }
+
+    .label {
+      background: rgba(0,0,0,0.7);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .label.reference {
+      color: #4caf50;
+    }
+
+    .label.actual {
+      color: #ff9800;
+    }
+
+    .diff-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 3;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .diff-overlay.visible {
+      opacity: 0.7;
+    }
+
+    .diff-overlay img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .info-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #2a2a2a;
+      padding: 8px 20px;
+      font-size: 12px;
+      color: #888;
+      border-top: 1px solid #444;
+    }
+
+    .no-images {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 400px;
+      color: #666;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <div class="control-group">
+      <label>Test:</label>
+      <select id="testSelect"></select>
+    </div>
+    <div class="control-group">
+      <label>Direction:</label>
+      <button id="horizontalBtn" class="active">Horizontal</button>
+      <button id="verticalBtn">Vertical</button>
+    </div>
+    <div class="control-group">
+      <label>Diff Overlay:</label>
+      <button id="diffToggle">Show Diff</button>
+    </div>
+    <div class="control-group">
+      <label>Zoom:</label>
+      <button id="zoomOut">-</button>
+      <span id="zoomLevel">100%</span>
+      <button id="zoomIn">+</button>
+      <button id="zoomReset">Reset</button>
+    </div>
+    <div class="control-group">
+      <label>Cursor:</label>
+      <span id="cursorPos">--, --</span>
+    </div>
+  </div>
+
+  <div class="viewer-container" id="viewerContainer">
+    <div class="zoom-container" id="zoomContainer">
+    <div id="compareWrapper" class="compare-wrapper">
+      <div class="labels horizontal" id="labels">
+        <span class="label reference">Reference</span>
+        <span class="label actual">Actual</span>
+      </div>
+      <div class="image-layer reference-layer" id="referenceLayer">
+        <img id="referenceImg" alt="Reference">
+      </div>
+      <div class="image-layer actual-layer" id="actualLayer">
+        <img id="actualImg" alt="Actual">
+      </div>
+      <div class="diff-overlay" id="diffOverlay">
+        <img id="diffImg" alt="Diff">
+      </div>
+      <div class="slider horizontal" id="slider">
+        <div class="slider-handle"></div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <div class="info-bar">
+    <span id="infoText">Drag the slider to compare reference and actual images</span>
+  </div>
+
+  <script>
+    const TESTS = [
+      { name: 'styles-no-hud', reference: '/styles-no-hud.png', actual: '/visual/output/styles-no-hud-actual.png', diff: '/visual/output/styles-no-hud-diff.png' },
+      { name: 'styles-with-hud', reference: '/styles-with-hud.png', actual: '/visual/output/styles-with-hud-actual.png', diff: '/visual/output/styles-with-hud-diff.png' },
+      { name: 'simple-shader', reference: '/simple-shader.png', actual: '/visual/output/simple-shader-actual.png', diff: '/visual/output/simple-shader-diff.png' },
+      { name: 'hudkit-prebonk', reference: '/hudkit-prebonk.png', actual: '/visual/output/hudkit-prebonk-actual.png', diff: '/visual/output/hudkit-prebonk-diff.png' },
+    ];
+
+    let currentDirection = 'horizontal';
+    let sliderPosition = 50;
+    let isDragging = false;
+    let showDiff = false;
+    let imageSize = { width: 0, height: 0 };
+    let displaySize = { width: 0, height: 0 };
+    let zoom = 1;
+    let panX = 0;
+    let panY = 0;
+    let isPanning = false;
+    let panStart = { x: 0, y: 0 };
+
+    const elements = {
+      testSelect: document.getElementById('testSelect'),
+      horizontalBtn: document.getElementById('horizontalBtn'),
+      verticalBtn: document.getElementById('verticalBtn'),
+      diffToggle: document.getElementById('diffToggle'),
+      compareWrapper: document.getElementById('compareWrapper'),
+      referenceLayer: document.getElementById('referenceLayer'),
+      actualLayer: document.getElementById('actualLayer'),
+      referenceImg: document.getElementById('referenceImg'),
+      actualImg: document.getElementById('actualImg'),
+      diffImg: document.getElementById('diffImg'),
+      diffOverlay: document.getElementById('diffOverlay'),
+      slider: document.getElementById('slider'),
+      labels: document.getElementById('labels'),
+      infoText: document.getElementById('infoText'),
+      viewerContainer: document.getElementById('viewerContainer'),
+      zoomContainer: document.getElementById('zoomContainer'),
+      zoomIn: document.getElementById('zoomIn'),
+      zoomOut: document.getElementById('zoomOut'),
+      zoomReset: document.getElementById('zoomReset'),
+      zoomLevel: document.getElementById('zoomLevel'),
+      cursorPos: document.getElementById('cursorPos'),
+    };
+
+    function init() {
+      populateTestSelect();
+      setupEventListeners();
+      loadTest(TESTS[0]);
+    }
+
+    function populateTestSelect() {
+      TESTS.forEach((test, i) => {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = test.name;
+        elements.testSelect.appendChild(option);
+      });
+    }
+
+    function setupEventListeners() {
+      elements.testSelect.addEventListener('change', (e) => {
+        loadTest(TESTS[e.target.value]);
+      });
+
+      elements.horizontalBtn.addEventListener('click', () => setDirection('horizontal'));
+      elements.verticalBtn.addEventListener('click', () => setDirection('vertical'));
+      elements.diffToggle.addEventListener('click', toggleDiff);
+
+      elements.slider.addEventListener('mousedown', startDrag);
+      document.addEventListener('mousemove', drag);
+      document.addEventListener('mouseup', stopDrag);
+
+      elements.slider.addEventListener('touchstart', startDrag, { passive: false });
+      document.addEventListener('touchmove', drag, { passive: false });
+      document.addEventListener('touchend', stopDrag);
+
+      elements.zoomIn.addEventListener('click', () => setZoom(zoom * 1.25));
+      elements.zoomOut.addEventListener('click', () => setZoom(zoom / 1.25));
+      elements.zoomReset.addEventListener('click', resetZoom);
+
+      elements.viewerContainer.addEventListener('wheel', handleWheel, { passive: false });
+
+      elements.zoomContainer.addEventListener('mousedown', startPan);
+      document.addEventListener('mousemove', pan);
+      document.addEventListener('mouseup', stopPan);
+
+      elements.zoomContainer.addEventListener('touchstart', startPan, { passive: false });
+      document.addEventListener('touchmove', pan, { passive: false });
+      document.addEventListener('touchend', stopPan);
+
+      elements.compareWrapper.addEventListener('mousemove', updateCursorPos);
+      elements.compareWrapper.addEventListener('mouseleave', () => {
+        elements.cursorPos.textContent = '--, --';
+      });
+    }
+
+    function loadTest(test) {
+      elements.referenceImg.src = test.reference;
+      elements.actualImg.src = test.actual;
+      elements.diffImg.src = test.diff;
+
+      elements.referenceImg.onload = () => {
+        imageSize.width = elements.referenceImg.naturalWidth;
+        imageSize.height = elements.referenceImg.naturalHeight;
+        resizeViewer();
+      };
+
+      elements.referenceImg.onerror = () => {
+        elements.infoText.textContent = `Reference image not found: ${test.reference}`;
+      };
+
+      elements.actualImg.onerror = () => {
+        elements.infoText.textContent = `Actual image not found: ${test.actual}`;
+      };
+    }
+
+    function resizeViewer() {
+      const maxWidth = window.innerWidth - 40;
+      const maxHeight = window.innerHeight - 150;
+
+      let width = imageSize.width;
+      let height = imageSize.height;
+
+      if (width > maxWidth) {
+        const ratio = maxWidth / width;
+        width = maxWidth;
+        height = height * ratio;
+      }
+
+      if (height > maxHeight) {
+        const ratio = maxHeight / height;
+        height = maxHeight;
+        width = width * ratio;
+      }
+
+      elements.compareWrapper.style.width = `${width}px`;
+      elements.compareWrapper.style.height = `${height}px`;
+
+      displaySize.width = width;
+      displaySize.height = height;
+
+      updateSlider();
+    }
+
+    function setDirection(direction) {
+      currentDirection = direction;
+
+      elements.horizontalBtn.classList.toggle('active', direction === 'horizontal');
+      elements.verticalBtn.classList.toggle('active', direction === 'vertical');
+
+      elements.slider.classList.remove('horizontal', 'vertical');
+      elements.slider.classList.add(direction);
+
+      elements.labels.classList.remove('horizontal', 'vertical');
+      elements.labels.classList.add(direction);
+
+      updateSlider();
+    }
+
+    function toggleDiff() {
+      showDiff = !showDiff;
+      elements.diffOverlay.classList.toggle('visible', showDiff);
+      elements.diffToggle.classList.toggle('active', showDiff);
+      elements.diffToggle.textContent = showDiff ? 'Hide Diff' : 'Show Diff';
+    }
+
+    function startDrag(e) {
+      isDragging = true;
+      e.preventDefault();
+    }
+
+    function drag(e) {
+      if (!isDragging) return;
+
+      const rect = elements.compareWrapper.getBoundingClientRect();
+      let clientX, clientY;
+
+      if (e.touches) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+
+      if (currentDirection === 'horizontal') {
+        const x = clientX - rect.left;
+        sliderPosition = Math.max(0, Math.min(100, (x / rect.width) * 100));
+      } else {
+        const y = clientY - rect.top;
+        sliderPosition = Math.max(0, Math.min(100, (y / rect.height) * 100));
+      }
+
+      updateSlider();
+    }
+
+    function stopDrag() {
+      isDragging = false;
+    }
+
+    function updateSlider() {
+      if (currentDirection === 'horizontal') {
+        elements.slider.style.left = `${sliderPosition}%`;
+        elements.slider.style.top = '';
+        elements.actualLayer.style.clipPath = `inset(0 0 0 ${sliderPosition}%)`;
+      } else {
+        elements.slider.style.top = `${sliderPosition}%`;
+        elements.slider.style.left = '';
+        elements.actualLayer.style.clipPath = `inset(${sliderPosition}% 0 0 0)`;
+      }
+    }
+
+    function setZoom(newZoom) {
+      zoom = Math.max(0.25, Math.min(10, newZoom));
+      updateZoom();
+    }
+
+    function resetZoom() {
+      zoom = 1;
+      panX = 0;
+      panY = 0;
+      updateZoom();
+    }
+
+    function updateZoom() {
+      elements.zoomContainer.style.transform = `scale(${zoom}) translate(${panX}px, ${panY}px)`;
+      elements.zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
+      elements.zoomContainer.classList.toggle('can-pan', zoom > 1);
+    }
+
+    function handleWheel(e) {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        setZoom(zoom * delta);
+      }
+    }
+
+    function startPan(e) {
+      if (zoom <= 1) return;
+      if (e.target === elements.slider || elements.slider.contains(e.target)) return;
+
+      isPanning = true;
+      elements.zoomContainer.classList.add('panning');
+
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      panStart = { x: clientX - panX * zoom, y: clientY - panY * zoom };
+      e.preventDefault();
+    }
+
+    function pan(e) {
+      if (!isPanning || isDragging) return;
+
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      panX = (clientX - panStart.x) / zoom;
+      panY = (clientY - panStart.y) / zoom;
+      updateZoom();
+    }
+
+    function stopPan() {
+      isPanning = false;
+      elements.zoomContainer.classList.remove('panning');
+    }
+
+    function updateCursorPos(e) {
+      const rect = elements.compareWrapper.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+
+      const imgX = Math.floor((x / displaySize.width) * imageSize.width);
+      const imgY = Math.floor((y / displaySize.height) * imageSize.height);
+
+      if (imgX >= 0 && imgX < imageSize.width && imgY >= 0 && imgY < imageSize.height) {
+        elements.cursorPos.textContent = `${imgX}, ${imgY}`;
+      } else {
+        elements.cursorPos.textContent = '--, --';
+      }
+    }
+
+    window.addEventListener('resize', resizeViewer);
+    init();
+  </script>
+</body>
+</html>
