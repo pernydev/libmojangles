@@ -87,6 +87,7 @@ async function init() {
   setupCollapsibleSections();
   setupResourcePackUpload();
   setupShaderEditor();
+  setupSavePng();
   handleResize();
   startRenderLoop();
 
@@ -342,6 +343,32 @@ function setupShaderEditor() {
     fragmentTextarea.value = currentFragmentSource;
     shaderError.textContent = "";
     setStatus("Shader reset to pack default");
+  });
+}
+
+function setupSavePng() {
+  const savePngBtn = document.getElementById("save-png")!;
+  savePngBtn.addEventListener("click", () => {
+    const offscreen = document.createElement("canvas");
+    offscreen.width = canvas.width;
+    offscreen.height = canvas.height;
+    const ctx = offscreen.getContext("2d")!;
+
+    ctx.drawImage(canvas, 0, 0);
+
+    if (state.showDebug) {
+      ctx.drawImage(debugCanvas, 0, 0);
+    }
+
+    offscreen.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "libmojangles.png";
+      a.click();
+      URL.revokeObjectURL(url);
+    }, "image/png");
   });
 }
 

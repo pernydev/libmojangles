@@ -1,5 +1,7 @@
 # Libmojangles
 
+<img src="logo.png" alt="Libmojangles" width="400" style="image-rendering: pixelated;">
+
 A TypeScript library that recreates Minecraft's font rendering stack for the web, pixel-perfect.
 
 ## Features

@@ -201,11 +201,12 @@ export class WebGLRenderer implements Renderer {
 
   constructor(canvas: HTMLCanvasElement) {
     const gl = canvas.getContext("webgl2", {
-      alpha: false,
+      alpha: true,
       premultipliedAlpha: false,
       antialias: false,
       depth: true,
       stencil: false,
+      preserveDrawingBuffer: true,
     });
     if (!gl) {
       throw new Error("WebGL2 not supported");
@@ -303,7 +304,7 @@ export class WebGLRenderer implements Renderer {
 
   beginFrame(): void {
     const gl = this.gl;
-    gl.clearColor(0, 0, 0, 1);
+    gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     gl.enable(gl.BLEND);

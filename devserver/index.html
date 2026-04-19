@@ -72,6 +72,22 @@
       #toggle-sidebar:hover {
         background: #444;
       }
+      #save-png {
+        position: absolute;
+        top: 8px;
+        left: 50px;
+        z-index: 100;
+        background: #333;
+        border: 1px solid #444;
+        color: #e0e0e0;
+        padding: 6px 10px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      #save-png:hover {
+        background: #444;
+      }
       .section {
         padding: 12px;
         border-bottom: 1px solid #333;
@@ -374,6 +390,7 @@
       </div>
       <div id="canvas-container">
         <button id="toggle-sidebar">☰</button>
+        <button id="save-png">Save PNG</button>
         <canvas id="canvas"></canvas>
         <canvas id="debug-canvas"></canvas>
       </div>
