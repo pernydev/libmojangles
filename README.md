@@ -1,6 +1,6 @@
 <img src="https://forgejo.perny.dev/perny/libmojangles/media/branch/master/logo.png" alt="Libmojangles">
 
-A TypeScript library that recreates Minecraft's font rendering stack for the web, pixel-perfect.
+A zero-dependencies TypeScript library that recreates Minecraft's font rendering stack for the web, pixel-perfect.
 
 > **Note:** This project has been mostly developed by LLMs, but tested heavily against the game.
 

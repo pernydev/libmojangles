@@ -1,9 +1,21 @@
 {
   "name": "libmojangles",
-  "module": "src/index.ts",
   "type": "module",
-  "version": "1.0.2",
+  "version": "1.1.2",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "bun build src/index.ts --outdir dist --format esm && tsc -p tsconfig.build.json",
+    "prepublishOnly": "bun run build",
     "dev": "cd devserver && bun run dev",
     "test": "bun test",
     "test:visual": "bun test tests/visual/visual.test.ts",
