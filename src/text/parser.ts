@@ -80,9 +80,21 @@ function parseColorName(name: string | undefined): Color | null {
   return MINECRAFT_COLORS[name] ?? parseHexColor(name);
 }
 
+function parseARGBColor(value: number | undefined): Color | undefined {
+  if (value === undefined || !Number.isInteger(value)) return undefined;
+  const argb = value >>> 0;
+  return {
+    a: ((argb >>> 24) & 0xff) / 255,
+    r: ((argb >>> 16) & 0xff) / 255,
+    g: ((argb >>> 8) & 0xff) / 255,
+    b: (argb & 0xff) / 255,
+  };
+}
+
 function mergeStyles(parent: TextStyle, child: Partial<TextStyle>): TextStyle {
   return {
     color: child.color ?? parent.color,
+    shadowColor: child.shadowColor ?? parent.shadowColor,
     bold: child.bold ?? parent.bold,
     italic: child.italic ?? parent.italic,
     underlined: child.underlined ?? parent.underlined,
@@ -94,11 +106,12 @@ function mergeStyles(parent: TextStyle, child: Partial<TextStyle>): TextStyle {
 }
 
 function resetStyle(): TextStyle {
-  return {
-    color: MINECRAFT_COLORS.white,
-    bold: false,
-    italic: false,
-    underlined: false,
+    return {
+      color: MINECRAFT_COLORS.white,
+      shadowColor: undefined,
+      bold: false,
+      italic: false,
+      underlined: false,
     strikethrough: false,
     obfuscated: false,
     font: "minecraft:default",
@@ -239,6 +252,7 @@ export class TextParserImpl implements TextParser {
 
     const style = mergeStyles(parentStyle, {
       color: component.color ? parseColorName(component.color) ?? undefined : undefined,
+      shadowColor: parseARGBColor(component.shadow_color),
       bold: component.bold,
       italic: component.italic,
       underlined: component.underlined,

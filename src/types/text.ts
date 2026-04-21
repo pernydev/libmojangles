@@ -7,6 +7,7 @@ export type Color = {
 
 export type TextStyle = {
   color?: Color;
+  shadowColor?: Color;
   bold?: boolean;
   italic?: boolean;
   underlined?: boolean;
@@ -24,6 +25,7 @@ export type TextComponent =
       with?: TextComponent[];
       extra?: TextComponent[];
       color?: string;
+      shadow_color?: number;
       bold?: boolean;
       italic?: boolean;
       underlined?: boolean;

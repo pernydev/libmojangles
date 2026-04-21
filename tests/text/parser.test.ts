@@ -111,6 +111,36 @@ describe("TextParser", () => {
       const result = parser.parseJson({ text: "Custom Font", font: "custom:font" });
       expect(result[0]!.style.font).toBe("custom:font");
     });
+
+    it("should parse shadow_color as ARGB decimal", () => {
+      const result = parser.parseJson({ text: "Shadow", shadow_color: -2130771713 });
+      expect(result[0]!.style.shadowColor).toEqual({
+        a: 128 / 255,
+        r: 255 / 255,
+        g: 0 / 255,
+        b: 255 / 255,
+      });
+    });
+
+    it("should inherit parent shadow_color", () => {
+      const result = parser.parseJson({
+        text: "A",
+        shadow_color: -16776961,
+        extra: [{ text: "B" }],
+      });
+      expect(result[0]!.style.shadowColor).toEqual({
+        a: 1,
+        r: 0,
+        g: 0,
+        b: 255 / 255,
+      });
+      expect(result[1]!.style.shadowColor).toEqual({
+        a: 1,
+        r: 0,
+        g: 0,
+        b: 255 / 255,
+      });
+    });
   });
 
   describe("parse (main method)", () => {

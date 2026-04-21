@@ -187,7 +187,7 @@ export class VertexGeneratorImpl implements VertexGenerator {
     const y1 = glyph.y + down;
 
     if (hasShadow) {
-      const shadowColor = shadowColorOverride ?? darkenColor(color, 0.25);
+      const shadowColor = glyph.style.shadowColor ?? shadowColorOverride ?? darkenColor(color, 0.25);
       this.addQuad(
         meshData,
         x0 + shadowOffset[0],
@@ -305,7 +305,7 @@ export class VertexGeneratorImpl implements VertexGenerator {
     const y1 = glyph.y + effectY1;
 
     if (hasShadow) {
-      const shadowColor = shadowColorOverride ?? darkenColor(color, 0.25);
+      const shadowColor = glyph.style.shadowColor ?? shadowColorOverride ?? darkenColor(color, 0.25);
       this.addRectQuad(
         meshData,
         x0 + shadowOffset[0],

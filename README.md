@@ -56,7 +56,21 @@ lib.drawText(
 );
 ```
 
-Supported properties: `text`, `extra`, `color`, `bold`, `italic`, `underlined`, `strikethrough`, `obfuscated`, `font`
+`shadow_color` is also supported for JSON components. It uses a decimal ARGB integer value.
+
+```typescript
+lib.drawText(
+  {
+    text: "Custom Shadow",
+    color: "white",
+    shadow_color: -2130771713,
+  },
+  10,
+  30,
+);
+```
+
+Supported properties: `text`, `extra`, `color`, `shadow_color`, `bold`, `italic`, `underlined`, `strikethrough`, `obfuscated`, `font`
 
 <img src="https://forgejo.perny.dev/perny/libmojangles/media/branch/master/headers/api-overview.png" alt="API Overview">
 
