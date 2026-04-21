@@ -515,7 +515,14 @@ export class WebGLShaderManager implements ShaderManager {
       this.gl.deleteProgram(compiled.program);
       this.compiledPrograms.delete(id);
     }
+    const pickingId = getPickingProgramId(id);
+    const pickingCompiled = this.compiledPrograms.get(pickingId);
+    if (pickingCompiled) {
+      this.gl.deleteProgram(pickingCompiled.program);
+      this.compiledPrograms.delete(pickingId);
+    }
     this.programs.delete(id);
+    this.programs.delete(pickingId);
   }
 
   clear(): void {
