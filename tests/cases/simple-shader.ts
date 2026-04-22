@@ -23,7 +23,7 @@ const testCase: TestCase = {
   expect: {
     type: "image",
     reference: "simple-shader.png",
-    threshold: 0.1,
+    threshold: 0.005,
   },
 };
 

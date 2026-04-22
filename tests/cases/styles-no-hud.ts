@@ -20,7 +20,7 @@ const testCase: TestCase = {
   expect: {
     type: "image",
     reference: "styles-no-hud.png",
-    threshold: 0.1,
+    threshold: 0.005,
   },
 };
 
