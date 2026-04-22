@@ -35,6 +35,12 @@ export type LibmojanglesOptions = {
   defaultFont?: ResourceLocation;
 };
 
+export type DrawTextOptions = LayoutOptions &
+  VertexGeneratorOptions &
+  Partial<RenderState> & {
+    anchorX?: "left" | "center" | "right";
+  };
+
 export interface Libmojangles {
   readonly resources: ResourceManager;
   readonly fonts: FontManager;
@@ -61,7 +67,7 @@ export interface Libmojangles {
     text: string | TextComponent,
     x: number,
     y: number,
-    options?: LayoutOptions & VertexGeneratorOptions & Partial<RenderState>
+    options?: DrawTextOptions
   ): DrawTextResult | void;
 
   pick(x: number, y: number): PickResult | null;
@@ -147,19 +153,34 @@ class LibmojanglesImpl implements Libmojangles {
     text: string | TextComponent,
     x: number,
     y: number,
-    options?: LayoutOptions & VertexGeneratorOptions & Partial<RenderState>
+    options?: DrawTextOptions
   ): DrawTextResult | void {
     const scale = options?.scale ?? 1;
-    const mesh = this.createTextMesh(text, {
+    const glyphs = this.parser.parse(text);
+    const layout = this.layout.layout(glyphs, this.fontResolver, {
+      maxWidth: options?.maxWidth,
+      lineSpacing: options?.lineSpacing,
+      alignment: options?.alignment,
+      wrapMode: options?.wrapMode,
+    });
+    const mesh = this.vertices.generate(layout, {
+      z: options?.z,
+      lightmapUV: options?.lightmapUV,
+      generateShadow: options?.generateShadow,
+      shadowOffset: options?.shadowOffset,
+      shadowColor: options?.shadowColor,
       generatePicking: true,
     });
+
+    const anchorX = options?.anchorX ?? "left";
+    const anchorOffset = anchorX === "center" ? layout.width / 2 : anchorX === "right" ? layout.width : 0;
 
     const modelView = new Float32Array(16);
     modelView[0] = scale;
     modelView[5] = scale;
     modelView[10] = 1;
     modelView[15] = 1;
-    modelView[12] = x;
+    modelView[12] = x - anchorOffset * scale;
     modelView[13] = y;
 
     const cachePicking = options?.cachePicking ?? false;

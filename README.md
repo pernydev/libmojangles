@@ -42,6 +42,15 @@ lib.drawText("Hello World!", 10, 10, { scale: 2 });
 lib.renderer.endFrame();
 ```
 
+You can anchor text horizontally at draw time:
+
+```typescript
+lib.drawText("Centered title", canvas.width / 2, 20, {
+  scale: 2,
+  anchorX: "center",
+});
+```
+
 <img src="https://forgejo.perny.dev/perny/libmojangles/media/branch/master/headers/text-components.png" alt="Text Components">
 
 Libmojangles supports Minecraft's JSON text component format:
