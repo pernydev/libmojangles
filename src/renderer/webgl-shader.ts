@@ -389,6 +389,15 @@ export class WebGLShaderManager implements ShaderManager {
     // vec2(int, int) literals like vec2(0, -1) — promote int args to floats.
     source = source.replace(/vec2\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)/g, "vec2($1.0, $2.0)");
 
+    // Bare int literals assigned to floats (e.g., pixelation = 0; → pixelation = 0.0;)
+    source = source.replace(
+      /(\b\w+)\s*=\s*(-?\d+)(?!\.\d*\w)(?=\s*;)/g,
+      (_, varName: string, value: string) => {
+        if (varName === "gl_Position" || varName === "pos") return _;
+        return `${varName} = ${value}.0`;
+      }
+    );
+
     // Prepend GLSL ES version and precision
     return "#version 300 es\nprecision highp float;\nprecision highp int;\n" + source;
   }
