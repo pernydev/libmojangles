@@ -4,6 +4,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { testCases, DEFAULT_VIEWPORT, DEFAULT_POSITION, type TestCase } from "../cases";
 import { compareImages } from "./compare";
+import type { BboxCheck } from "../cases/types";
 
 const ROOT_DIR = path.resolve(__dirname, "../..");
 const DEVSERVER_DIR = path.join(ROOT_DIR, "devserver");
@@ -168,7 +169,7 @@ export class TestRunner {
         diffPixels: compareResult.diffPixels,
         totalPixels: compareResult.totalPixels,
       };
-    } else {
+    } else if (testCase.expect.type === "pixels") {
       const pixelResults = await this.checkPixels(testCase.expect.checks);
       const allPassed = pixelResults.every((r) => r.passed);
 
@@ -177,6 +178,14 @@ export class TestRunner {
         passed: allPassed,
         actualPath,
         pixelChecks: pixelResults,
+      };
+    } else {
+      const bboxResult = await this.checkBboxIds(testCase.expect.ids);
+      return {
+        name: testCase.name,
+        passed: bboxResult.passed,
+        actualPath,
+        bboxChecks: bboxResult.checks,
       };
     }
   }
@@ -214,6 +223,29 @@ export class TestRunner {
 
     return results;
   }
+
+  private async checkBboxIds(
+    expectedIds: Array<string | undefined>
+  ): Promise<{ passed: boolean; checks: BboxCheck[] }> {
+    if (!this.page) throw new Error("No page");
+
+    const actualIds = await this.page.evaluate(() =>
+      window.__LAST_DRAW_RESULT__?.components.map((component) => component.id)
+    );
+
+    const checks = expectedIds.map((expected, index) => {
+      const actual = actualIds?.[index];
+      const passed = actual === expected;
+      return {
+        index,
+        expected,
+        actual,
+        passed,
+      };
+    });
+
+    return { passed: checks.every((check) => check.passed), checks };
+  }
 }
 
 export interface TestResult {
@@ -226,6 +258,7 @@ export interface TestResult {
   diffPixels?: number;
   totalPixels?: number;
   pixelChecks?: Array<{ x: number; y: number; expected: number[]; actual: number[]; passed: boolean }>;
+  bboxChecks?: BboxCheck[];
 }
 
 export { testCases };

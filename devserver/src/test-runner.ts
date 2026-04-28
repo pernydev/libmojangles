@@ -23,6 +23,7 @@ declare global {
     __TEST_CONFIG__?: TestConfig;
     __TEST_READY__?: boolean;
     __TEST_ERROR__?: string;
+    __LAST_DRAW_RESULT__?: { components: Array<{ id?: string; bbox: { min: [number, number]; max: [number, number] } }> };
     __runTest__: (config: TestConfig) => Promise<void>;
   }
 }
@@ -127,8 +128,9 @@ async function runTest(config: TestConfig): Promise<void> {
     screenX = position.x * viewport.guiScale;
   }
 
-  lib.drawText(text, screenX, screenY, {
+  window.__LAST_DRAW_RESULT__ = lib.drawText(text, screenX, screenY, {
     scale: viewport.guiScale,
+    cachePicking: true,
     ...(programId ? { programId } : {}),
   });
 

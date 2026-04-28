@@ -165,6 +165,22 @@ describe("TextParser", () => {
       expect(result[0]!.style.color).toEqual({ r: 85 / 255, g: 1, b: 85 / 255, a: 1 });
     });
   });
+
+  describe("parseComponentRanges", () => {
+    it("should cascade ids through nested extras", () => {
+      const result = parser.parseComponentRanges({
+        id: "/hud/layout/element[0]/text[0]",
+        text: "T",
+        extra: [{ text: "e" }, { text: "x" }, { text: "t" }],
+      });
+
+      expect(result).toHaveLength(4);
+      expect(result[0]!.id).toBe("/hud/layout/element[0]/text[0]");
+      expect(result[1]!.id).toBe("/hud/layout/element[0]/text[0]/extra[0]");
+      expect(result[2]!.id).toBe("/hud/layout/element[0]/text[0]/extra[1]");
+      expect(result[3]!.id).toBe("/hud/layout/element[0]/text[0]/extra[2]");
+    });
+  });
 });
 
 describe("createTextParser", () => {

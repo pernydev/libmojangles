@@ -208,20 +208,27 @@ export class TextParserImpl implements TextParser {
 
   private collectComponentRanges(
     component: TextComponent,
-    startIndex: number
+    startIndex: number,
+    inheritedId?: string
   ): ComponentRange[] {
     const ranges: ComponentRange[] = [];
     if (typeof component === "string") {
-      return [{ sourceRange: [startIndex, startIndex + component.length] }];
+      return [
+        {
+          id: inheritedId,
+          sourceRange: [startIndex, startIndex + component.length],
+        },
+      ];
     }
 
     let currentIndex = startIndex;
+    const componentId = component.id ?? inheritedId;
 
     if (component.text && component.text.length > 0) {
       const endIndex = currentIndex + component.text.length;
       if (endIndex > currentIndex) {
         ranges.push({
-          id: component.id,
+          id: componentId,
           sourceRange: [currentIndex, endIndex],
         });
       }
@@ -229,8 +236,10 @@ export class TextParserImpl implements TextParser {
     }
 
     if (component.extra) {
-      for (const extra of component.extra) {
-        const childRanges = this.collectComponentRanges(extra, currentIndex);
+      for (let index = 0; index < component.extra.length; index++) {
+        const extra = component.extra[index]!;
+        const childId = componentId ? `${componentId}/extra[${index}]` : undefined;
+        const childRanges = this.collectComponentRanges(extra, currentIndex, childId);
         ranges.push(...childRanges);
         if (childRanges.length > 0) {
           currentIndex = childRanges[childRanges.length - 1]!.sourceRange[1];

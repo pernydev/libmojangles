@@ -27,6 +27,15 @@ function formatResult(result: TestResult): string {
     }
   }
 
+  if (result.bboxChecks) {
+    for (const check of result.bboxChecks) {
+      const checkStatus = check.passed ? "OK" : "FAIL";
+      lines.push(
+        `  [${checkStatus}] [${check.index}]: expected ${JSON.stringify(check.expected)}, got ${JSON.stringify(check.actual)}`
+      );
+    }
+  }
+
   return lines.join("\n");
 }
 

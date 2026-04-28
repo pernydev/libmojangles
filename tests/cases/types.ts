@@ -18,7 +18,7 @@ export interface TestCase {
     vertex?: string;  // path relative to tests/
     fragment?: string;
   };
-  expect: ImageExpectation | PixelExpectation;
+  expect: ImageExpectation | PixelExpectation | BboxExpectation;
 }
 
 export interface ImageExpectation {
@@ -30,6 +30,18 @@ export interface ImageExpectation {
 export interface PixelExpectation {
   type: "pixels";
   checks: PixelCheck[];
+}
+
+export interface BboxExpectation {
+  type: "bbox";
+  ids: Array<string | undefined>;
+}
+
+export interface BboxCheck {
+  index: number;
+  expected: string | undefined;
+  actual: string | undefined;
+  passed: boolean;
 }
 
 export interface PixelCheck {
