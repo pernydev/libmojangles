@@ -73,7 +73,7 @@ export class WebGLTextureManager implements TextureManager {
     const pathStr = location.path.endsWith(".png") ? location.path : `${location.path}.png`;
     const path: ResourceLocation = {
       namespace: location.namespace,
-      path: `textures/${pathStr}`,
+      path: pathStr.startsWith("textures/") ? pathStr : `textures/${pathStr}`,
     };
 
     const data = await this.resources.readBinary(path);
