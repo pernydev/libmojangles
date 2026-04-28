@@ -11,9 +11,9 @@ const testCase: TestCase = {
     type: "bbox",
     ids: [
       "/hud/layout/element[0]/text[0]",
-      "/hud/layout/element[0]/text[0]/extra[0]",
-      "/hud/layout/element[0]/text[0]/extra[1]",
-      "/hud/layout/element[0]/text[0]/extra[2]",
+      "/hud/layout/element[0]/text[0]",
+      "/hud/layout/element[0]/text[0]",
+      "/hud/layout/element[0]/text[0]",
     ],
   },
 };

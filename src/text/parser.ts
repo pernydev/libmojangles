@@ -236,10 +236,8 @@ export class TextParserImpl implements TextParser {
     }
 
     if (component.extra) {
-      for (let index = 0; index < component.extra.length; index++) {
-        const extra = component.extra[index]!;
-        const childId = componentId ? `${componentId}/extra[${index}]` : undefined;
-        const childRanges = this.collectComponentRanges(extra, currentIndex, childId);
+      for (const extra of component.extra) {
+        const childRanges = this.collectComponentRanges(extra, currentIndex, componentId);
         ranges.push(...childRanges);
         if (childRanges.length > 0) {
           currentIndex = childRanges[childRanges.length - 1]!.sourceRange[1];
