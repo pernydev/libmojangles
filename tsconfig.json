@@ -1,5 +1,5 @@
 {
-  "include": ["src"],
+  "include": ["src", "tests"],
   "exclude": ["devserver", "node_modules"],
   "compilerOptions": {
     // Environment setup & latest features
@@ -11,6 +11,10 @@
     "allowJs": true,
 
     // Bundler mode
+    "baseUrl": ".",
+    "paths": {
+      "libmojangles": ["./src/index"]
+    },
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,

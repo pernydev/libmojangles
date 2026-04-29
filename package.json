@@ -33,7 +33,6 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "jszip": "^3.10.1",
-    "libmojangles": "1.4.1"
+    "jszip": "^3.10.1"
   }
 }
