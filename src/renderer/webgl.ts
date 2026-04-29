@@ -12,6 +12,7 @@ import { WebGLShaderManager, getPickingProgramId } from "./webgl-shader";
 import { WebGLTextureManager } from "./webgl-texture";
 
 const FLOATS_PER_VERTEX = 12;
+const PICKING_FLOATS_PER_VERTEX = 16;
 
 function createOrthographicMatrix(
   left: number,
@@ -184,6 +185,7 @@ export class WebGLRenderer implements Renderer {
   textures: WebGLTextureManager | null = null;
 
   private vao: WebGLVertexArrayObject | null = null;
+  private pickingVao: WebGLVertexArrayObject | null = null;
   private vbo: WebGLBuffer | null = null;
   private ebo: WebGLBuffer | null = null;
 
@@ -243,6 +245,7 @@ export class WebGLRenderer implements Renderer {
     const gl = this.gl;
 
     this.vao = gl.createVertexArray();
+    this.pickingVao = gl.createVertexArray();
     this.vbo = gl.createBuffer();
     this.ebo = gl.createBuffer();
 
@@ -263,6 +266,27 @@ export class WebGLRenderer implements Renderer {
 
     gl.enableVertexAttribArray(3);
     gl.vertexAttribPointer(3, 2, gl.FLOAT, false, stride, 36);
+
+    gl.bindVertexArray(this.pickingVao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ebo);
+
+    const pickingStride = PICKING_FLOATS_PER_VERTEX * 4;
+
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, pickingStride, 0);
+
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 4, gl.FLOAT, false, pickingStride, 12);
+
+    gl.enableVertexAttribArray(2);
+    gl.vertexAttribPointer(2, 2, gl.FLOAT, false, pickingStride, 28);
+
+    gl.enableVertexAttribArray(3);
+    gl.vertexAttribPointer(3, 2, gl.FLOAT, false, pickingStride, 36);
+
+    gl.enableVertexAttribArray(4);
+    gl.vertexAttribPointer(4, 4, gl.FLOAT, false, pickingStride, 48);
 
     gl.bindVertexArray(null);
   }
@@ -391,7 +415,7 @@ export class WebGLRenderer implements Renderer {
     if (projLoc) gl.uniformMatrix4fv(projLoc, false, projection);
     if (mvLoc) gl.uniformMatrix4fv(mvLoc, false, modelView);
 
-    gl.bindVertexArray(this.vao);
+    gl.bindVertexArray(this.pickingVao);
     this.drawPickingMesh(mesh.pickingMesh, compiled);
     gl.bindVertexArray(null);
 
@@ -412,6 +436,7 @@ export class WebGLRenderer implements Renderer {
 
   private drawPickingMesh(mesh: TextMesh, compiled: { program: WebGLProgram; uniforms: Map<string, WebGLUniformLocation> }): void {
     const gl = this.gl;
+    const isCustomPickingMesh = (mesh.floatsPerVertex ?? FLOATS_PER_VERTEX) === PICKING_FLOATS_PER_VERTEX;
 
     // Bind white texture to Sampler2 for lightmap — required by Minecraft vertex shader
     const sampler2Loc = compiled.uniforms.get("Sampler2");
@@ -430,7 +455,16 @@ export class WebGLRenderer implements Renderer {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ebo);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.DYNAMIC_DRAW);
 
+    if (!isCustomPickingMesh) {
+      gl.disableVertexAttribArray(4);
+      gl.vertexAttrib4f(4, 0, 0, 0, 0);
+    }
+
     gl.drawElements(gl.TRIANGLES, mesh.indexCount, gl.UNSIGNED_SHORT, 0);
+
+    if (!isCustomPickingMesh) {
+      gl.enableVertexAttribArray(4);
+    }
   }
 
   readPickingBuffer(x: number, y: number): Uint8Array {
@@ -486,6 +520,7 @@ export class WebGLRenderer implements Renderer {
     const gl = this.gl;
 
     if (this.vao) gl.deleteVertexArray(this.vao);
+    if (this.pickingVao) gl.deleteVertexArray(this.pickingVao);
     if (this.vbo) gl.deleteBuffer(this.vbo);
     if (this.ebo) gl.deleteBuffer(this.ebo);
     if (this.pickingFramebuffer) gl.deleteFramebuffer(this.pickingFramebuffer);

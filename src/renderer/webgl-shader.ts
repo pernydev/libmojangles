@@ -70,15 +70,12 @@ void main() {
 const MINECRAFT_PICKING_FRAGMENT_SHADER = `#version 300 es
 precision highp float;
 
-in float sphericalVertexDistance;
-in float cylindricalVertexDistance;
-in vec4 vertexColor;
-in vec2 texCoord0;
+in vec4 vertexPickColor;
 
 out vec4 fragColor;
 
 void main() {
-  fragColor = vertexColor;
+  fragColor = vertexPickColor;
 }
 `;
 
@@ -88,11 +85,34 @@ const MINECRAFT_ATTR_BINDINGS: Record<string, number> = {
   Color: 1,
   UV0: 2,
   UV2: 3,
+  PickColor: 4,
   a_position: 0,
   a_color: 1,
   a_uv0: 2,
   a_uv2: 3,
 };
+
+export function injectPickingPassThrough(vertexSource: string): string {
+  const hasPickColorIn = /\bin\s+vec4\s+PickColor\s*;/m.test(vertexSource);
+  const hasPickColorOut = /\bout\s+vec4\s+vertexPickColor\s*;/m.test(vertexSource);
+  const mainMatch = /\bvoid\s+main\s*\(\s*\)\s*\{/m.exec(vertexSource);
+  if (!mainMatch || mainMatch.index === undefined) {
+    throw new Error("Failed to create picking shader variant: could not find main() in vertex shader");
+  }
+
+  let patched = vertexSource;
+  const declarationBlock = `${hasPickColorIn ? "" : "in vec4 PickColor;\n"}${hasPickColorOut ? "" : "out vec4 vertexPickColor;\n"}`;
+  if (declarationBlock) {
+    const headerMatch = /^(\s*#version\s+[^\n]*\n(?:\s*precision\s+[^\n]*\n)*)/m.exec(patched);
+    const insertDeclarationsAt = headerMatch ? headerMatch[0].length : 0;
+    patched = `${patched.slice(0, insertDeclarationsAt)}${declarationBlock}${patched.slice(insertDeclarationsAt)}`;
+  }
+
+  const insertAt = mainMatch.index + (patched.length - vertexSource.length) + mainMatch[0].length;
+  patched = `${patched.slice(0, insertAt)}\n    vertexPickColor = PickColor;${patched.slice(insertAt)}`;
+
+  return patched;
+}
 
 interface CompiledProgram {
   program: WebGLProgram;
@@ -489,7 +509,8 @@ export class WebGLShaderManager implements ShaderManager {
     // Create picking variant with same vertex shader + Minecraft-compatible picking fragment shader
     const pickingId = getPickingProgramId(programId);
     if (!this.compiledPrograms.has(pickingId)) {
-      const pickingCompiled = this.compileProgramWithBindings(vertexSource, MINECRAFT_PICKING_FRAGMENT_SHADER);
+      const pickingVertexSource = injectPickingPassThrough(vertexSource);
+      const pickingCompiled = this.compileProgramWithBindings(pickingVertexSource, MINECRAFT_PICKING_FRAGMENT_SHADER);
       this.compiledPrograms.set(pickingId, pickingCompiled);
     }
 

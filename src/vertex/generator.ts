@@ -18,6 +18,7 @@ const EXTRA_BOLD_THICKNESS = 0.1;
 const DEFAULT_LIGHTMAP: [number, number] = [240 / 256, 240 / 256];
 
 const FLOATS_PER_VERTEX = 12;
+const PICKING_FLOATS_PER_VERTEX = 16;
 
 function colorToArray(color: Color): [number, number, number, number] {
   return [color.r, color.g, color.b, color.a];
@@ -118,8 +119,9 @@ export class VertexGeneratorImpl implements VertexGenerator {
         vertices: new Float32Array(pickingData.vertices),
         indices: new Uint16Array(pickingData.indices),
         textureId: "picking",
-        vertexCount: pickingData.vertices.length / FLOATS_PER_VERTEX,
+        vertexCount: pickingData.vertices.length / PICKING_FLOATS_PER_VERTEX,
         indexCount: pickingData.indices.length,
+        floatsPerVertex: PICKING_FLOATS_PER_VERTEX,
       };
     }
 
@@ -339,7 +341,40 @@ export class VertexGeneratorImpl implements VertexGenerator {
     const y0 = glyph.y + glyph.glyph.up * scale;
     const y1 = glyph.y + glyph.glyph.down * scale;
 
-    this.addRectQuad(pickingData, x0, y0, x1, y1, z, pickColor, lightmapUV);
+    const color = glyph.style.color ?? { r: 1, g: 1, b: 1, a: 1 };
+    this.addPickingRectQuad(pickingData, x0, y0, x1, y1, z, color, lightmapUV, pickColor);
+  }
+
+  private addPickingRectQuad(
+    meshData: { vertices: number[]; indices: number[] },
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    z: number,
+    color: Color,
+    lightmapUV: [number, number],
+    pickColor: Color
+  ): void {
+    const baseVertex = meshData.vertices.length / PICKING_FLOATS_PER_VERTEX;
+    const rgba = colorToArray(color);
+    const pickRgba = colorToArray(pickColor);
+
+    meshData.vertices.push(
+      x0, y0, z, rgba[0], rgba[1], rgba[2], rgba[3], 0, 0, lightmapUV[0], lightmapUV[1], 0, pickRgba[0], pickRgba[1], pickRgba[2], pickRgba[3],
+      x0, y1, z, rgba[0], rgba[1], rgba[2], rgba[3], 0, 1, lightmapUV[0], lightmapUV[1], 0, pickRgba[0], pickRgba[1], pickRgba[2], pickRgba[3],
+      x1, y1, z, rgba[0], rgba[1], rgba[2], rgba[3], 1, 1, lightmapUV[0], lightmapUV[1], 0, pickRgba[0], pickRgba[1], pickRgba[2], pickRgba[3],
+      x1, y0, z, rgba[0], rgba[1], rgba[2], rgba[3], 1, 0, lightmapUV[0], lightmapUV[1], 0, pickRgba[0], pickRgba[1], pickRgba[2], pickRgba[3]
+    );
+
+    meshData.indices.push(
+      baseVertex,
+      baseVertex + 1,
+      baseVertex + 2,
+      baseVertex,
+      baseVertex + 2,
+      baseVertex + 3
+    );
   }
 
   private addQuad(

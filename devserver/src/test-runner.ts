@@ -25,6 +25,8 @@ declare global {
     __TEST_ERROR__?: string;
     __LAST_DRAW_RESULT__?: { components: Array<{ id?: string; bbox: { min: [number, number]; max: [number, number] } }> };
     __runTest__: (config: TestConfig) => Promise<void>;
+    __TEST_LIB__?: Libmojangles;
+    __TEST_MEMORY_PACK__?: typeof MemoryResourcePack;
   }
 }
 
@@ -49,6 +51,8 @@ async function init() {
   };
 
   window.__runTest__ = runTest;
+  window.__TEST_LIB__ = lib;
+  window.__TEST_MEMORY_PACK__ = MemoryResourcePack;
   window.__TEST_READY__ = true;
 }
 

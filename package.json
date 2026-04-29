@@ -1,7 +1,7 @@
 {
   "name": "libmojangles",
   "type": "module",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -33,6 +33,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "jszip": "^3.10.1"
+    "jszip": "^3.10.1",
+    "libmojangles": "^1.4.2"
   }
 }

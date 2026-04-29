@@ -5,6 +5,7 @@
       "name": "libmojangles",
       "dependencies": {
         "jszip": "^3.10.1",
+        "libmojangles": "^1.4.2",
       },
       "devDependencies": {
         "@playwright/test": "^1.59.1",
@@ -89,6 +90,8 @@
     "isarray": ["isarray@1.0.0", "", {}, "sha512-VLghIWNM6ELQzo7zwmcg0NmTVyWKYjvIeM83yjp0wRDTmUnrM678fQbcKBo6n2CJEF0szoG//ytg+TKla89ALQ=="],
 
     "jszip": ["jszip@3.10.1", "", { "dependencies": { "lie": "~3.3.0", "pako": "~1.0.2", "readable-stream": "~2.3.6", "setimmediate": "^1.0.5" } }, "sha512-xXDvecyTpGLrqFrvkrUSoxxfJI5AH7U8zxxtVclpsUtMCq4JQ290LY8AW5c7Ggnr/Y/oK+bQMbqK2qmtk3pN4g=="],
+
+    "libmojangles": ["libmojangles@1.4.2", "", { "dependencies": { "jszip": "^3.10.1" }, "peerDependencies": { "typescript": "^5" } }, "sha512-LL7CH+/POFAlgWWJDa+VEKQlgj8BbgojAy/oBF2g+O0PJesdC4cRun7mRYcHi7rfMekETagPpsLk2zR3muwYKA=="],
 
     "lie": ["lie@3.3.0", "", { "dependencies": { "immediate": "~3.0.5" } }, "sha512-UaiMJzeWRlEujzAuw5LokY1L5ecNQYZKfmyZ9L7wDHb/p5etKaxXhohBcrw0EYby+G/NA52vRSN4N39dxHAIwQ=="],
 
