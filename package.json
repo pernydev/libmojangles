@@ -34,6 +34,6 @@
   },
   "dependencies": {
     "jszip": "^3.10.1",
-    "libmojangles": "^1.4.2"
+    "libmojangles": "1.4.1"
   }
 }
