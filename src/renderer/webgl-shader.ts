@@ -53,6 +53,23 @@ void main() {
 }
 `;
 
+const PICKING_VERTEX_SHADER = `#version 300 es
+precision highp float;
+
+uniform mat4 u_projection;
+uniform mat4 u_modelView;
+
+layout(location = 0) in vec3 a_position;
+layout(location = 4) in vec4 a_pickColor;
+
+out vec4 v_color;
+
+void main() {
+  gl_Position = u_projection * u_modelView * vec4(a_position, 1.0);
+  v_color = a_pickColor;
+}
+`;
+
 const PICKING_FRAGMENT_SHADER = `#version 300 es
 precision highp float;
 
@@ -88,6 +105,7 @@ const MINECRAFT_ATTR_BINDINGS: Record<string, number> = {
   PickColor: 4,
   a_position: 0,
   a_color: 1,
+  a_pickColor: 4,
   a_uv0: 2,
   a_uv2: 3,
 };
@@ -153,7 +171,7 @@ export class WebGLShaderManager implements ShaderManager {
 
     this.pickingProgram = this.createBuiltinProgram(
       "picking",
-      TEXT_VERTEX_SHADER,
+      PICKING_VERTEX_SHADER,
       PICKING_FRAGMENT_SHADER
     );
     this.programs.set("picking", this.pickingProgram);
