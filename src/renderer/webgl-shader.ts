@@ -120,6 +120,10 @@ interface CompiledProgram {
   attributes: Map<string, number>;
 }
 
+type KHRParallelShaderCompile = {
+  COMPLETION_STATUS_KHR: number;
+};
+
 function getPickingProgramId(programId: string): string {
   return `${programId}:picking`;
 }
@@ -129,11 +133,13 @@ export class WebGLShaderManager implements ShaderManager {
   private compiledPrograms = new Map<string, CompiledProgram>();
   private textProgram: ShaderProgram | null = null;
   private pickingProgram: ShaderProgram | null = null;
+  private parallelShaderCompile: KHRParallelShaderCompile | null;
 
   constructor(
     private gl: WebGL2RenderingContext,
     private resources?: ResourceManager
   ) {
+    this.parallelShaderCompile = gl.getExtension("KHR_parallel_shader_compile") as KHRParallelShaderCompile | null;
     this.initBuiltinPrograms();
   }
 
@@ -213,6 +219,75 @@ export class WebGLShaderManager implements ShaderManager {
     };
   }
 
+  private createProgramObject(
+    vertexShader: WebGLShader,
+    fragmentShader: WebGLShader,
+    bindMinecraftAttributes: boolean
+  ): WebGLProgram {
+    const gl = this.gl;
+    const program = gl.createProgram()!;
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+
+    if (bindMinecraftAttributes) {
+      for (const [name, location] of Object.entries(MINECRAFT_ATTR_BINDINGS)) {
+        gl.bindAttribLocation(program, location, name);
+      }
+    }
+
+    gl.linkProgram(program);
+    return program;
+  }
+
+  private async waitForProgramLink(program: WebGLProgram): Promise<void> {
+    const gl = this.gl;
+    const ext = this.parallelShaderCompile;
+
+    if (ext) {
+      while (!gl.getProgramParameter(program, ext.COMPLETION_STATUS_KHR)) {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      }
+    }
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      const error = gl.getProgramInfoLog(program);
+      gl.deleteProgram(program);
+      throw new Error(`Failed to link program: ${error}`);
+    }
+  }
+
+  private buildCompiledProgram(
+    program: WebGLProgram,
+    vertexShader: WebGLShader,
+    fragmentShader: WebGLShader
+  ): CompiledProgram {
+    const gl = this.gl;
+
+    gl.deleteShader(vertexShader);
+    gl.deleteShader(fragmentShader);
+
+    const uniforms = new Map<string, WebGLUniformLocation>();
+    const numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+    for (let i = 0; i < numUniforms; i++) {
+      const info = gl.getActiveUniform(program, i);
+      if (info) {
+        const loc = gl.getUniformLocation(program, info.name);
+        if (loc) uniforms.set(info.name, loc);
+      }
+    }
+
+    const attributes = new Map<string, number>();
+    const numAttributes = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+    for (let i = 0; i < numAttributes; i++) {
+      const info = gl.getActiveAttrib(program, i);
+      if (info) {
+        attributes.set(info.name, gl.getAttribLocation(program, info.name));
+      }
+    }
+
+    return { program, uniforms, attributes };
+  }
+
   private compileProgram(vertexSource: string, fragmentSource: string): CompiledProgram {
     const gl = this.gl;
 
@@ -253,6 +328,26 @@ export class WebGLShaderManager implements ShaderManager {
     }
 
     return { program, uniforms, attributes };
+  }
+
+  private async compileProgramWithBindingsAsync(
+    vertexSource: string,
+    fragmentSource: string
+  ): Promise<CompiledProgram> {
+    const gl = this.gl;
+
+    const vs = this.compileShader(gl.VERTEX_SHADER, vertexSource);
+    const fs = this.compileShader(gl.FRAGMENT_SHADER, fragmentSource);
+    const program = this.createProgramObject(vs, fs, true);
+
+    try {
+      await this.waitForProgramLink(program);
+      return this.buildCompiledProgram(program, vs, fs);
+    } catch (error) {
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+      throw error;
+    }
   }
 
   private compileProgramWithBindings(
@@ -437,12 +532,14 @@ export class WebGLShaderManager implements ShaderManager {
       );
     }
 
-    const vertexRaw = await this.resources.readText(vertexPath);
+    const [vertexRaw, fragmentRaw] = await Promise.all([
+      this.resources.readText(vertexPath),
+      this.resources.readText(fragmentPath),
+    ]);
+
     if (!vertexRaw) {
       throw new Error(`Vertex shader not found: ${resourceLocationToString(vertexPath)}`);
     }
-
-    const fragmentRaw = await this.resources.readText(fragmentPath);
     if (!fragmentRaw) {
       throw new Error(`Fragment shader not found: ${resourceLocationToString(fragmentPath)}`);
     }
@@ -457,7 +554,7 @@ export class WebGLShaderManager implements ShaderManager {
     const vertexSource = this.adaptToWebGL2(vertexExpanded);
     const fragmentSource = this.adaptToWebGL2(fragmentExpanded);
 
-    const compiled = this.compileProgramWithBindings(vertexSource, fragmentSource);
+    const compiled = await this.compileProgramWithBindingsAsync(vertexSource, fragmentSource);
     this.compiledPrograms.set(programId, compiled);
 
     const gl = this.gl;
@@ -510,7 +607,10 @@ export class WebGLShaderManager implements ShaderManager {
     const pickingId = getPickingProgramId(programId);
     if (!this.compiledPrograms.has(pickingId)) {
       const pickingVertexSource = injectPickingPassThrough(vertexSource);
-      const pickingCompiled = this.compileProgramWithBindings(pickingVertexSource, MINECRAFT_PICKING_FRAGMENT_SHADER);
+      const pickingCompiled = await this.compileProgramWithBindingsAsync(
+        pickingVertexSource,
+        MINECRAFT_PICKING_FRAGMENT_SHADER
+      );
       this.compiledPrograms.set(pickingId, pickingCompiled);
     }
 
