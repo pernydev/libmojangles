@@ -121,3 +121,24 @@ bun test
 <img src="https://forgejo.perny.dev/perny/libmojangles/media/branch/master/headers/resource-packs.png" alt="Resource Packs">
 
 You need Minecraft's vanilla assets or a compatible resource pack. The library expects the standard Minecraft resource pack structure:
+
+<img src="https://forgejo.perny.dev/perny/libmojangles/media/branch/master/headers/hudkit.png" alt="Hudkit">
+
+Libmojangles was built by the Hudkit team to power Minecraft text rendering in [Hudkit Studio](https://studio.hudkit.net), where it runs in production today.
+
+<img src="https://forgejo.perny.dev/perny/libmojangles/media/branch/master/headers/license.png" alt="License">
+
+Libmojangles is licensed under the **GNU Lesser General Public License v3.0 or later** (LGPL-3.0-or-later).
+
+This means you can:
+- Use this library in proprietary applications without open-sourcing your entire project
+- Link to or import libmojangles as a dependency in any project (commercial or otherwise)
+- Modify the library for your own use
+
+If you distribute a modified version of libmojangles itself, you must:
+- Release your modifications under LGPL-3.0 or later
+- Provide access to the modified source code
+
+See [LICENSE.md](LICENSE.md) for the full license text.
+
+Copyright (C) 2026 Perny / Hudkit

@@ -29,6 +29,8 @@ const HEADERS = [
   { name: "api-overview", text: toSmallcaps("API Overview") },
   { name: "development", text: toSmallcaps("Development") },
   { name: "resource-packs", text: toSmallcaps("Resource Packs") },
+  { name: "license", text: toSmallcaps("License") },
+  { name: "hudkit", text: toSmallcaps("Hudkit") },
 ];
 
 const SCALE = 3;
