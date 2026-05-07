@@ -65,21 +65,28 @@ lib.drawText(
 );
 ```
 
-`shadow_color` is also supported for JSON components. It uses a decimal ARGB integer value.
+### Per-Component Custom Uniforms
+
+For convenience, you can pass custom shader uniforms to specific components by ID.
 
 ```typescript
 lib.drawText(
   {
-    text: "Custom Shadow",
-    color: "white",
-    shadow_color: -2130771713,
+    extra: [
+      { id: "warning", text: "WARNING: " },
+      { id: "message", text: "System overheating!" },
+    ],
   },
   10,
-  30,
+  10,
+  {
+    uniforms: {
+      warning: { TintColor: [1, 0, 0] },
+      message: { TintColor: [1, 1, 0] },
+    },
+  },
 );
 ```
-
-Supported properties: `text`, `extra`, `color`, `shadow_color`, `bold`, `italic`, `underlined`, `strikethrough`, `obfuscated`, `font`
 
 <img src="https://forgejo.perny.dev/perny/libmojangles/media/branch/master/headers/api-overview.png" alt="API Overview">
 
@@ -131,11 +138,13 @@ Libmojangles was built by the Hudkit team to power Minecraft text rendering in [
 Libmojangles is licensed under the **GNU Lesser General Public License v3.0 or later** (LGPL-3.0-or-later).
 
 This means you can:
+
 - Use this library in proprietary applications without open-sourcing your entire project
 - Link to or import libmojangles as a dependency in any project (commercial or otherwise)
 - Modify the library for your own use
 
 If you distribute a modified version of libmojangles itself, you must:
+
 - Release your modifications under LGPL-3.0 or later
 - Provide access to the modified source code
 
