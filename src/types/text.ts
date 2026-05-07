@@ -44,6 +44,7 @@ export interface StyledGlyph {
   readonly codepoint: number;
   readonly style: TextStyle;
   readonly sourceIndex: number;
+  readonly componentId?: string;
 }
 
 export interface TextParser {

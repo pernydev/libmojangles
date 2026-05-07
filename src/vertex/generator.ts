@@ -53,7 +53,19 @@ export class VertexGeneratorImpl implements VertexGenerator {
       shadowOffsetBase[1] * scale,
     ];
 
-    const meshesByTexture = new Map<string, { vertices: number[]; indices: number[] }>();
+    const meshesByKey = new Map<string, { vertices: number[]; indices: number[]; textureId: string; componentId?: string }>();
+
+    const getMeshKey = (textureId: string, componentId?: string) => {
+      return componentId ? `${textureId}:${componentId}` : textureId;
+    };
+
+    const getMeshData = (textureId: string, componentId?: string) => {
+      const key = getMeshKey(textureId, componentId);
+      if (!meshesByKey.has(key)) {
+        meshesByKey.set(key, { vertices: [], indices: [], textureId, componentId });
+      }
+      return meshesByKey.get(key)!;
+    };
     const pickingData: { vertices: number[]; indices: number[] } = { vertices: [], indices: [] };
 
     for (const line of layout.lines) {
@@ -65,7 +77,7 @@ export class VertexGeneratorImpl implements VertexGenerator {
           generateShadow,
           shadowOffset,
           options?.shadowColor,
-          meshesByTexture,
+          getMeshData,
           scale
         );
 
@@ -83,7 +95,7 @@ export class VertexGeneratorImpl implements VertexGenerator {
             generateShadow,
             shadowOffset,
             options?.shadowColor,
-            meshesByTexture,
+            getMeshData,
             scale
           );
         }
@@ -98,7 +110,7 @@ export class VertexGeneratorImpl implements VertexGenerator {
             generateShadow,
             shadowOffset,
             options?.shadowColor,
-            meshesByTexture,
+            getMeshData,
             scale
           );
         }
@@ -106,13 +118,14 @@ export class VertexGeneratorImpl implements VertexGenerator {
     }
 
     const meshes: TextMesh[] = [];
-    for (const [textureId, data] of meshesByTexture) {
+    for (const [_key, data] of meshesByKey) {
       meshes.push({
         vertices: new Float32Array(data.vertices),
         indices: new Uint16Array(data.indices),
-        textureId,
+        textureId: data.textureId,
         vertexCount: data.vertices.length / FLOATS_PER_VERTEX,
         indexCount: data.indices.length,
+        componentId: data.componentId,
       });
     }
 
@@ -166,16 +179,13 @@ export class VertexGeneratorImpl implements VertexGenerator {
     generateShadow: boolean,
     shadowOffset: [number, number],
     shadowColorOverride: Color | undefined,
-    meshesByTexture: Map<string, { vertices: number[]; indices: number[] }>,
+    getMeshData: (textureId: string, componentId?: string) => { vertices: number[]; indices: number[] },
     scale: number
   ): void {
     const textureId = glyph.glyph.textureId;
     if (!textureId) return;
 
-    if (!meshesByTexture.has(textureId)) {
-      meshesByTexture.set(textureId, { vertices: [], indices: [] });
-    }
-    const meshData = meshesByTexture.get(textureId)!;
+    const meshData = getMeshData(textureId, glyph.componentId);
 
     const color = glyph.style.color ?? { r: 1, g: 1, b: 1, a: 1 };
     const italic = glyph.style.italic ?? false;
@@ -290,15 +300,12 @@ export class VertexGeneratorImpl implements VertexGenerator {
     generateShadow: boolean,
     shadowOffset: [number, number],
     shadowColorOverride: Color | undefined,
-    meshesByTexture: Map<string, { vertices: number[]; indices: number[] }>,
+    getMeshData: (textureId: string, componentId?: string) => { vertices: number[]; indices: number[] },
     scale: number
   ): void {
     // Use dedicated white texture for solid color effects (like Minecraft's SpecialGlyphs.WHITE)
     const textureId = "__white__";
-    if (!meshesByTexture.has(textureId)) {
-      meshesByTexture.set(textureId, { vertices: [], indices: [] });
-    }
-    const meshData = meshesByTexture.get(textureId)!;
+    const meshData = getMeshData(textureId, glyph.componentId);
     const color = glyph.style.color ?? { r: 1, g: 1, b: 1, a: 1 };
     const shadowColor = glyph.style.shadowColor ?? shadowColorOverride ?? darkenColor(color, 0.25);
     const hasShadow = generateShadow && (glyph.style.shadow ?? true) && !isColorZero(shadowColor);

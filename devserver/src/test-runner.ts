@@ -6,6 +6,7 @@ import {
   type FontResolver,
   type TextComponent,
   type ResourceLocation,
+  type ComponentUniforms,
 } from "libmojangles";
 import { FetchResourcePack } from "./FetchResourcePack";
 import { MemoryResourcePack } from "./MemoryResourcePack";
@@ -16,6 +17,7 @@ interface TestConfig {
   position: { x: number; y: number; centerX: boolean };
   resourcePackUrls: string[];
   shaderUrls?: { vertex?: string; fragment?: string };
+  uniforms?: Record<string, ComponentUniforms>;
 }
 
 declare global {
@@ -136,6 +138,7 @@ async function runTest(config: TestConfig): Promise<void> {
     scale: viewport.guiScale,
     cachePicking: true,
     ...(programId ? { programId } : {}),
+    ...(config.uniforms ? { uniforms: config.uniforms } : {}),
   });
 
   lib.renderer.endFrame();

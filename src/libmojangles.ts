@@ -21,6 +21,7 @@ import type {
   ComponentRange,
   DrawTextResult,
   DrawnComponent,
+  ComponentUniforms,
 } from "./types";
 import { WebGLRenderer, WebGLTextureManager, WebGLShaderManager } from "./renderer";
 import { ResourceManagerImpl, createResourceManager, parseResourceLocation } from "./resources";
@@ -39,6 +40,7 @@ export type DrawTextOptions = LayoutOptions &
   VertexGeneratorOptions &
   Partial<RenderState> & {
     anchorX?: "left" | "center" | "right";
+    uniforms?: Record<string, ComponentUniforms>;
   };
 
 export interface Libmojangles {
@@ -190,6 +192,7 @@ class LibmojanglesImpl implements Libmojangles {
       projectionMatrix: this.renderer.getProjectionMatrix(),
       modelViewMatrix: modelView,
       cachePicking,
+      componentUniforms: options?.uniforms,
     };
 
     this.renderer.drawTextWithPicking(mesh, state);

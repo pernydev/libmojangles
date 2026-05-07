@@ -15,6 +15,7 @@ export type TextMesh = {
   readonly vertexCount: number;
   readonly indexCount: number;
   readonly floatsPerVertex?: number;
+  readonly componentId?: string;
 };
 
 export type TextMeshGroup = {

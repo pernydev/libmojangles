@@ -7,6 +7,7 @@ export type PositionedGlyph = {
   readonly x: number;
   readonly y: number;
   readonly sourceIndex: number;
+  readonly componentId?: string;
 };
 
 export type TextLine = {

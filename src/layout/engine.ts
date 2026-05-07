@@ -103,6 +103,7 @@ export class TextLayoutEngineImpl implements TextLayoutEngine {
         x: currentX,
         y: lines.length * lineHeight * lineSpacing,
         sourceIndex: styledGlyph.sourceIndex,
+        componentId: styledGlyph.componentId,
       };
 
       currentLine.push(positioned);

@@ -30,6 +30,15 @@ export type UniformType =
   | "int"
   | "ivec2";
 
+export type UniformValue =
+  | number
+  | [number, number]
+  | [number, number, number]
+  | [number, number, number, number]
+  | Float32Array;
+
+export type ComponentUniforms = Record<string, UniformValue>;
+
 export type UniformInfo = {
   readonly name: string;
   readonly type: UniformType;
@@ -88,6 +97,7 @@ export type RenderState = {
   fogColor: Color;
   programId: string;
   cachePicking?: boolean;
+  componentUniforms?: Record<string, ComponentUniforms>;
 };
 
 export type DrawCall = {

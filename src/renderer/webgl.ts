@@ -7,6 +7,7 @@ import type {
   ShaderProgram,
   Texture,
   Mat4,
+  ComponentUniforms,
 } from "../types";
 import { WebGLShaderManager, getPickingProgramId } from "./webgl-shader";
 import { WebGLTextureManager } from "./webgl-texture";
@@ -120,8 +121,24 @@ class WebGLRenderContext implements RenderContext {
 
     if (typeof value === "number") {
       this.gl.uniform1f(loc, value);
+    } else if (Array.isArray(value)) {
+      switch (value.length) {
+        case 2:
+          this.gl.uniform2f(loc, value[0] ?? 0, value[1] ?? 0);
+          break;
+        case 3:
+          this.gl.uniform3f(loc, value[0] ?? 0, value[1] ?? 0, value[2] ?? 0);
+          break;
+        case 4:
+          this.gl.uniform4f(loc, value[0] ?? 0, value[1] ?? 0, value[2] ?? 0, value[3] ?? 0);
+          break;
+      }
     } else if (value instanceof Float32Array) {
-      if (value.length === 4) {
+      if (value.length === 2) {
+        this.gl.uniform2f(loc, value[0] ?? 0, value[1] ?? 0);
+      } else if (value.length === 3) {
+        this.gl.uniform3f(loc, value[0] ?? 0, value[1] ?? 0, value[2] ?? 0);
+      } else if (value.length === 4) {
         this.gl.uniform4f(loc, value[0] ?? 0, value[1] ?? 0, value[2] ?? 0, value[3] ?? 0);
       } else if (value.length === 16) {
         this.gl.uniformMatrix4fv(loc, false, value);
@@ -129,10 +146,19 @@ class WebGLRenderContext implements RenderContext {
     }
   }
 
-  draw(mesh: TextMeshGroup): void {
+  draw(mesh: TextMeshGroup, componentUniforms?: Record<string, ComponentUniforms>): void {
     this.gl.bindVertexArray(this.vao);
 
     for (const submesh of mesh.meshes) {
+      if (componentUniforms && submesh.componentId) {
+        const uniforms = componentUniforms[submesh.componentId];
+        if (uniforms) {
+          for (const [name, value] of Object.entries(uniforms)) {
+            this.setUniform(name, value);
+          }
+        }
+      }
+
       if (this.textures) {
         const texture = this.textures.getTextureByKey(submesh.textureId);
         if (texture) {
@@ -341,7 +367,7 @@ export class WebGLRenderer implements Renderer {
   endFrame(): void {}
 
   drawText(mesh: TextMeshGroup, state: Partial<RenderState>): void {
-    const ctx = this.context;
+    const ctx = this.context as WebGLRenderContext;
     ctx.flush();
 
     const programId = state.programId ?? "text";
@@ -357,7 +383,7 @@ export class WebGLRenderer implements Renderer {
 
     this.setFogUniforms(ctx, state);
 
-    ctx.draw(mesh);
+    ctx.draw(mesh, state.componentUniforms);
   }
 
   private setFogUniforms(ctx: RenderContext, state: Partial<RenderState>): void {

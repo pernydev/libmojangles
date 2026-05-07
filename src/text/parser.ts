@@ -173,13 +173,13 @@ export class TextParserImpl implements TextParser {
       const glyphs: StyledGlyph[] = [];
       let sourceIndex = 0;
       for (const component of input) {
-        const parsed = this.parseJsonComponent(component, resetStyle(), sourceIndex);
+        const parsed = this.parseJsonComponent(component, resetStyle(), sourceIndex, undefined);
         glyphs.push(...parsed);
         sourceIndex += parsed.length;
       }
       return glyphs;
     }
-    return this.parseJsonComponent(input, resetStyle(), 0);
+    return this.parseJsonComponent(input, resetStyle(), 0, undefined);
   }
 
   parseComponentRanges(input: string | TextComponent): ComponentRange[] {
@@ -251,10 +251,11 @@ export class TextParserImpl implements TextParser {
   private parseJsonComponent(
     component: TextComponent,
     parentStyle: TextStyle,
-    startIndex: number
+    startIndex: number,
+    inheritedId: string | undefined
   ): StyledGlyph[] {
     if (typeof component === "string") {
-      return this.stringToGlyphs(component, parentStyle, startIndex);
+      return this.stringToGlyphs(component, parentStyle, startIndex, inheritedId);
     }
 
     const style = mergeStyles(parentStyle, {
@@ -268,18 +269,19 @@ export class TextParserImpl implements TextParser {
       font: component.font,
     });
 
+    const componentId = component.id ?? inheritedId;
     const glyphs: StyledGlyph[] = [];
     let sourceIndex = startIndex;
 
     if (component.text) {
-      const parsed = this.stringToGlyphs(component.text, style, sourceIndex);
+      const parsed = this.stringToGlyphs(component.text, style, sourceIndex, componentId);
       glyphs.push(...parsed);
       sourceIndex += parsed.length;
     }
 
     if (component.extra) {
       for (const extra of component.extra) {
-        const parsed = this.parseJsonComponent(extra, style, sourceIndex);
+        const parsed = this.parseJsonComponent(extra, style, sourceIndex, componentId);
         glyphs.push(...parsed);
         sourceIndex += parsed.length;
       }
@@ -288,7 +290,7 @@ export class TextParserImpl implements TextParser {
     return glyphs;
   }
 
-  private stringToGlyphs(text: string, style: TextStyle, startIndex: number): StyledGlyph[] {
+  private stringToGlyphs(text: string, style: TextStyle, startIndex: number, componentId: string | undefined): StyledGlyph[] {
     const glyphs: StyledGlyph[] = [];
     let index = startIndex;
     for (const char of text) {
@@ -298,6 +300,7 @@ export class TextParserImpl implements TextParser {
           codepoint,
           style: { ...style },
           sourceIndex: index++,
+          componentId,
         });
       }
     }

@@ -1,4 +1,4 @@
-import type { TextComponent } from "libmojangles";
+import type { TextComponent, ComponentUniforms } from "libmojangles";
 
 export interface TestCase {
   name: string;
@@ -18,6 +18,7 @@ export interface TestCase {
     vertex?: string;  // path relative to tests/
     fragment?: string;
   };
+  uniforms?: Record<string, ComponentUniforms>;  // per-component custom uniforms
   expect: ImageExpectation | PixelExpectation | BboxExpectation;
 }
 
