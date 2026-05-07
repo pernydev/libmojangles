@@ -35,6 +35,10 @@ function darkenColor(color: Color, factor: number): Color {
   };
 }
 
+function isColorZero(color: Color): boolean {
+  return color.r === 0 && color.g === 0 && color.b === 0 && color.a === 0;
+}
+
 export class VertexGeneratorImpl implements VertexGenerator {
   generate(layout: LayoutResult, options?: VertexGeneratorOptions): TextMeshGroup {
     const z = options?.z ?? 0;
@@ -176,7 +180,8 @@ export class VertexGeneratorImpl implements VertexGenerator {
     const color = glyph.style.color ?? { r: 1, g: 1, b: 1, a: 1 };
     const italic = glyph.style.italic ?? false;
     const bold = glyph.style.bold ?? false;
-    const hasShadow = generateShadow && (glyph.style.shadow ?? true);
+    const shadowColor = glyph.style.shadowColor ?? shadowColorOverride ?? darkenColor(color, 0.25);
+    const hasShadow = generateShadow && (glyph.style.shadow ?? true) && !isColorZero(shadowColor);
 
     const left = glyph.glyph.left * scale;
     const right = glyph.glyph.right * scale;
@@ -189,7 +194,6 @@ export class VertexGeneratorImpl implements VertexGenerator {
     const y1 = glyph.y + down;
 
     if (hasShadow) {
-      const shadowColor = glyph.style.shadowColor ?? shadowColorOverride ?? darkenColor(color, 0.25);
       this.addQuad(
         meshData,
         x0 + shadowOffset[0],
@@ -296,7 +300,8 @@ export class VertexGeneratorImpl implements VertexGenerator {
     }
     const meshData = meshesByTexture.get(textureId)!;
     const color = glyph.style.color ?? { r: 1, g: 1, b: 1, a: 1 };
-    const hasShadow = generateShadow && (glyph.style.shadow ?? true);
+    const shadowColor = glyph.style.shadowColor ?? shadowColorOverride ?? darkenColor(color, 0.25);
+    const hasShadow = generateShadow && (glyph.style.shadow ?? true) && !isColorZero(shadowColor);
 
     const bold = glyph.style.bold ?? false;
     const advance = (glyph.glyph.advance + (bold ? BOLD_OFFSET : 0)) * scale;
@@ -307,7 +312,6 @@ export class VertexGeneratorImpl implements VertexGenerator {
     const y1 = glyph.y + effectY1;
 
     if (hasShadow) {
-      const shadowColor = glyph.style.shadowColor ?? shadowColorOverride ?? darkenColor(color, 0.25);
       this.addRectQuad(
         meshData,
         x0 + shadowOffset[0],
