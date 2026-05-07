@@ -53,10 +53,10 @@ export class BitmapGlyphProvider implements GlyphProvider {
           const up = 7.0 - ascent;
           const down = up + cellHeight / oversample;
 
-          const u0 = (col * cellWidth) / this.textureWidth;
-          const v0 = (row * cellHeight) / this.textureHeight;
-          const u1 = (col * cellWidth + actualWidth) / this.textureWidth;
-          const v1 = ((row + 1) * cellHeight) / this.textureHeight;
+          const u0 = (col * cellWidth + 0.01) / this.textureWidth;
+          const v0 = (row * cellHeight + 0.01) / this.textureHeight;
+          const u1 = (col * cellWidth + actualWidth - 0.01) / this.textureWidth;
+          const v1 = ((row + 1) * cellHeight - 0.01) / this.textureHeight;
 
           const glyph = new GlyphRenderInfoImpl(
             codepoint,
