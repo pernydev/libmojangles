@@ -442,7 +442,7 @@ export class WebGLRenderer implements Renderer {
     if (mvLoc) gl.uniformMatrix4fv(mvLoc, false, modelView);
 
     gl.bindVertexArray(this.pickingVao);
-    this.drawPickingMesh(mesh.pickingMesh, compiled);
+    this.drawPickingMesh(mesh.pickingMesh, compiled, state.componentUniforms);
     gl.bindVertexArray(null);
 
     if (this.enablePickingCache && this.pickingCache) {
@@ -460,7 +460,7 @@ export class WebGLRenderer implements Renderer {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
-  private drawPickingMesh(mesh: TextMesh, compiled: { program: WebGLProgram; uniforms: Map<string, WebGLUniformLocation> }): void {
+  private drawPickingMesh(mesh: TextMesh, compiled: { program: WebGLProgram; uniforms: Map<string, WebGLUniformLocation> }, componentUniforms?: Record<string, ComponentUniforms>): void {
     const gl = this.gl;
     const isCustomPickingMesh = (mesh.floatsPerVertex ?? FLOATS_PER_VERTEX) === PICKING_FLOATS_PER_VERTEX;
 
@@ -472,6 +472,28 @@ export class WebGLRenderer implements Renderer {
         gl.activeTexture(gl.TEXTURE2);
         gl.bindTexture(gl.TEXTURE_2D, (whiteTexture as unknown as { getGLTexture(): WebGLTexture }).getGLTexture());
         gl.uniform1i(sampler2Loc, 2);
+      }
+    }
+
+    if (componentUniforms && mesh.componentId) {
+      const uniforms = componentUniforms[mesh.componentId];
+      if (uniforms) {
+        for (const [name, value] of Object.entries(uniforms)) {
+          const loc = compiled.uniforms.get(name);
+          if (!loc) continue;
+          if (typeof value === "number") {
+            gl.uniform1f(loc, value);
+          } else if (Array.isArray(value)) {
+            if (value.length === 2) gl.uniform2f(loc, value[0] ?? 0, value[1] ?? 0);
+            else if (value.length === 3) gl.uniform3f(loc, value[0] ?? 0, value[1] ?? 0, value[2] ?? 0);
+            else if (value.length === 4) gl.uniform4f(loc, value[0] ?? 0, value[1] ?? 0, value[2] ?? 0, value[3] ?? 0);
+          } else if (value instanceof Float32Array) {
+            if (value.length === 2) gl.uniform2f(loc, value[0] ?? 0, value[1] ?? 0);
+            else if (value.length === 3) gl.uniform3f(loc, value[0] ?? 0, value[1] ?? 0, value[2] ?? 0);
+            else if (value.length === 4) gl.uniform4f(loc, value[0] ?? 0, value[1] ?? 0, value[2] ?? 0, value[3] ?? 0);
+            else if (value.length === 16) gl.uniformMatrix4fv(loc, false, value);
+          }
+        }
       }
     }
 
