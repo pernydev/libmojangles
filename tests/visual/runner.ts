@@ -117,6 +117,7 @@ export class TestRunner {
       resourcePackUrls,
       shaderUrls,
       uniforms: testCase.uniforms,
+      transformFeedback: testCase.transformFeedback,
     };
 
     await this.page.evaluate(async (cfg) => {

@@ -9,7 +9,7 @@ import type {
   Mat4,
   ComponentUniforms,
 } from "../types";
-import { WebGLShaderManager, getPickingProgramId } from "./webgl-shader";
+import { WebGLShaderManager, getPickingProgramId, getTFProgramId } from "./webgl-shader";
 import { WebGLTextureManager } from "./webgl-texture";
 
 const FLOATS_PER_VERTEX = 12;
@@ -224,6 +224,10 @@ export class WebGLRenderer implements Renderer {
   private pickingCache: Uint8Array | null = null;
   private enablePickingCache = false;
 
+  private tfFeedback: WebGLTransformFeedback | null = null;
+  private tfBuffer: WebGLBuffer | null = null;
+  private tfBBoxResult: Map<number, { minX: number; minY: number; maxX: number; maxY: number }> | null = null;
+
   private projectionMatrix: Mat4 = createIdentityMatrix();
   private modelViewMatrix: Mat4 = createIdentityMatrix();
 
@@ -315,6 +319,9 @@ export class WebGLRenderer implements Renderer {
     gl.vertexAttribPointer(4, 4, gl.FLOAT, false, pickingStride, 48);
 
     gl.bindVertexArray(null);
+
+    this.tfFeedback = gl.createTransformFeedback();
+    this.tfBuffer = gl.createBuffer();
   }
 
   private initPickingFramebuffer(width: number, height: number): void {
@@ -405,6 +412,14 @@ export class WebGLRenderer implements Renderer {
 
     if (!mesh.pickingMeshes || mesh.pickingMeshes.length === 0 || !this.shaders) return;
 
+    if (state.transformFeedback) {
+      this.tfBBoxResult = null;
+      this.computeBBoxesWithTF(mesh, state);
+    }
+
+    const needsPickingFramebuffer = !state.transformFeedback || state.cachePicking;
+    if (!needsPickingFramebuffer) return;
+
     const gl = this.gl;
 
     // Use program-specific picking shader if available, otherwise fall back to default
@@ -416,7 +431,7 @@ export class WebGLRenderer implements Renderer {
     }
     if (!compiled) return;
 
-    const shouldCache = state.cachePicking ?? false;
+    const shouldCache = (state.cachePicking ?? false) && !state.transformFeedback;
     if (shouldCache) {
       this.enablePickingCache = true;
       this.pickingCache = new Uint8Array(this.context.width * this.context.height * 4);
@@ -517,6 +532,135 @@ export class WebGLRenderer implements Renderer {
     }
   }
 
+  private computeBBoxesWithTF(mesh: TextMeshGroup, state: Partial<RenderState>): void {
+    if (!mesh.pickingMeshes || mesh.pickingMeshes.length === 0 || !this.shaders) return;
+
+    const gl = this.gl;
+    const programId = state.programId ?? "text";
+    const tfProgramId = getTFProgramId(programId);
+    const compiled = this.shaders.getCompiledProgram(tfProgramId);
+    if (!compiled) return;
+
+    const viewportWidth = this.context.width;
+    const viewportHeight = this.context.height;
+    const projection = state.projectionMatrix ?? this.projectionMatrix;
+    const modelView = state.modelViewMatrix ?? this.modelViewMatrix;
+    const result = new Map<number, { minX: number; minY: number; maxX: number; maxY: number }>();
+
+    const FLOATS_PER_TF_VERTEX = 8; // gl_Position(4) + pickColor(4)
+
+    for (const pickingMesh of mesh.pickingMeshes) {
+      const outputSize = pickingMesh.indexCount * FLOATS_PER_TF_VERTEX * 4;
+
+      gl.useProgram(compiled.program);
+
+      const projLoc = compiled.uniforms.get("u_projection") ?? compiled.uniforms.get("ProjMat");
+      const mvLoc = compiled.uniforms.get("u_modelView") ?? compiled.uniforms.get("ModelViewMat");
+      if (projLoc) gl.uniformMatrix4fv(projLoc, false, projection);
+      if (mvLoc) gl.uniformMatrix4fv(mvLoc, false, modelView);
+
+      if (state.componentUniforms && pickingMesh.componentId) {
+        const uniforms = state.componentUniforms[pickingMesh.componentId];
+        if (uniforms) {
+          for (const [name, value] of Object.entries(uniforms)) {
+            const loc = compiled.uniforms.get(name);
+            if (!loc) continue;
+            if (typeof value === "number") {
+              gl.uniform1f(loc, value);
+            } else if (Array.isArray(value)) {
+              if (value.length === 2) gl.uniform2f(loc, value[0] ?? 0, value[1] ?? 0);
+              else if (value.length === 3) gl.uniform3f(loc, value[0] ?? 0, value[1] ?? 0, value[2] ?? 0);
+              else if (value.length === 4) gl.uniform4f(loc, value[0] ?? 0, value[1] ?? 0, value[2] ?? 0, value[3] ?? 0);
+            } else if (value instanceof Float32Array) {
+              if (value.length === 2) gl.uniform2f(loc, value[0] ?? 0, value[1] ?? 0);
+              else if (value.length === 3) gl.uniform3f(loc, value[0] ?? 0, value[1] ?? 0, value[2] ?? 0);
+              else if (value.length === 4) gl.uniform4f(loc, value[0] ?? 0, value[1] ?? 0, value[2] ?? 0, value[3] ?? 0);
+              else if (value.length === 16) gl.uniformMatrix4fv(loc, false, value);
+            }
+          }
+        }
+      }
+
+      const sampler2Loc = compiled.uniforms.get("Sampler2");
+      if (sampler2Loc && this.textures) {
+        const whiteTexture = this.textures.getTextureByKey("__white__");
+        if (whiteTexture) {
+          gl.activeTexture(gl.TEXTURE2);
+          gl.bindTexture(gl.TEXTURE_2D, (whiteTexture as unknown as { getGLTexture(): WebGLTexture }).getGLTexture());
+          gl.uniform1i(sampler2Loc, 2);
+        }
+      }
+
+      const floatsPerVert = pickingMesh.floatsPerVertex ?? PICKING_FLOATS_PER_VERTEX;
+      const deindexed = new Float32Array(pickingMesh.indexCount * floatsPerVert);
+      for (let i = 0; i < pickingMesh.indexCount; i++) {
+        const srcIdx = pickingMesh.indices[i]! * floatsPerVert;
+        deindexed.set(pickingMesh.vertices.subarray(srcIdx, srcIdx + floatsPerVert), i * floatsPerVert);
+      }
+
+      gl.bindVertexArray(this.pickingVao);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
+      gl.bufferData(gl.ARRAY_BUFFER, deindexed, gl.DYNAMIC_DRAW);
+
+      gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, this.tfBuffer);
+      gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, outputSize, gl.DYNAMIC_READ);
+
+      gl.enable(gl.RASTERIZER_DISCARD);
+      gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, this.tfFeedback);
+      gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, this.tfBuffer);
+
+      gl.beginTransformFeedback(gl.TRIANGLES);
+      gl.drawArrays(gl.TRIANGLES, 0, pickingMesh.indexCount);
+      gl.endTransformFeedback();
+
+      gl.disable(gl.RASTERIZER_DISCARD);
+      gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+
+      const output = new Float32Array(pickingMesh.indexCount * FLOATS_PER_TF_VERTEX);
+      gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, this.tfBuffer);
+      gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER, 0, output);
+
+      gl.bindVertexArray(null);
+
+      for (let i = 0; i < output.length; i += FLOATS_PER_TF_VERTEX) {
+        const clipX = output[i]!;
+        const clipY = output[i + 1]!;
+        const clipW = output[i + 3]!;
+        if (clipW === 0) continue;
+
+        const ndcX = clipX / clipW;
+        const ndcY = clipY / clipW;
+        const screenX = (ndcX * 0.5 + 0.5) * viewportWidth;
+        const screenY = (ndcY * 0.5 + 0.5) * viewportHeight;
+
+        const pickR = output[i + 4]!;
+        const pickG = output[i + 5]!;
+        const pickB = output[i + 6]!;
+        const encoded = (Math.round(pickR * 255) << 16) | (Math.round(pickG * 255) << 8) | Math.round(pickB * 255);
+        if (encoded === 0) continue;
+        const sourceIndex = encoded - 1;
+
+        let bounds = result.get(sourceIndex);
+        if (!bounds) {
+          bounds = { minX: screenX, minY: screenY, maxX: screenX, maxY: screenY };
+          result.set(sourceIndex, bounds);
+        } else {
+          bounds.minX = Math.min(bounds.minX, screenX);
+          bounds.minY = Math.min(bounds.minY, screenY);
+          bounds.maxX = Math.max(bounds.maxX, screenX);
+          bounds.maxY = Math.max(bounds.maxY, screenY);
+        }
+      }
+    }
+
+    this.tfBBoxResult = result;
+  }
+
+  getTFBBoxResult(): Map<number, { minX: number; minY: number; maxX: number; maxY: number }> | null {
+    return this.tfBBoxResult;
+  }
+
   readPickingBuffer(x: number, y: number): Uint8Array {
     const gl = this.gl;
     const pixel = new Uint8Array(4);
@@ -576,5 +720,7 @@ export class WebGLRenderer implements Renderer {
     if (this.pickingFramebuffer) gl.deleteFramebuffer(this.pickingFramebuffer);
     if (this.pickingTexture) gl.deleteTexture(this.pickingTexture);
     if (this.pickingRenderbuffer) gl.deleteRenderbuffer(this.pickingRenderbuffer);
+    if (this.tfFeedback) gl.deleteTransformFeedback(this.tfFeedback);
+    if (this.tfBuffer) gl.deleteBuffer(this.tfBuffer);
   }
 }

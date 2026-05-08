@@ -17,6 +17,7 @@ interface PlaygroundState {
   textY: number;
   centerX: boolean;
   showDebug: boolean;
+  bboxMethod: "picking" | "tf";
   bgColor: string;
   customProgramId: string | null;
 }
@@ -33,6 +34,7 @@ const state: PlaygroundState = {
   textY: 10,
   centerX: true,
   showDebug: false,
+  bboxMethod: "picking",
   bgColor: "#000000",
   customProgramId: null,
 };
@@ -146,9 +148,17 @@ function setupControls() {
   });
 
   const showDebugCheckbox = document.getElementById("show-debug") as HTMLInputElement;
+  const bboxMethodRow = document.getElementById("bbox-method-row")!;
+  const bboxMethodSelect = document.getElementById("bbox-method") as HTMLSelectElement;
+
   showDebugCheckbox.addEventListener("change", () => {
     state.showDebug = showDebugCheckbox.checked;
+    bboxMethodRow.style.display = state.showDebug ? "" : "none";
     if (!state.showDebug) clearDebugCanvas();
+  });
+
+  bboxMethodSelect.addEventListener("change", () => {
+    state.bboxMethod = bboxMethodSelect.value as "picking" | "tf";
   });
 
   const textInput = document.getElementById("text-input") as HTMLTextAreaElement;
@@ -418,11 +428,13 @@ function startRenderLoop() {
     }
 
     try {
+      const useTF = state.showDebug && state.bboxMethod === "tf";
       const drawResult = lib.drawText(state.textComponent, screenX, screenY, {
         scale: state.guiScale,
         ...(state.customProgramId ? { programId: state.customProgramId } : {}),
-        generatePicking: state.showDebug,
-        cachePicking: state.showDebug,
+        generatePicking: state.showDebug && !useTF,
+        cachePicking: state.showDebug && !useTF,
+        transformFeedback: useTF,
       });
 
       if (state.showDebug && drawResult) {

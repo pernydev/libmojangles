@@ -114,6 +114,72 @@ void main() {
     expect(result.ok).toBe(true);
   }
 
+  it("compiles a TF variant alongside picking variant for custom shaders", async () => {
+    if (!page) throw new Error("No browser page");
+
+    const result = await page.evaluate(async () => {
+      const lib = window.__TEST_LIB__;
+      const MemoryResourcePack = window.__TEST_MEMORY_PACK__;
+      if (!lib || !MemoryResourcePack) {
+        return { ok: false, error: "Test lib not initialized" };
+      }
+
+      try {
+        const response = await fetch(`${window.location.origin}/test-assets/simple-shader.vsh`);
+        if (!response.ok) {
+          return { ok: false, error: "Failed to fetch sample shader" };
+        }
+
+        const vertexSource = await response.text();
+        const customPack = new MemoryResourcePack("__tf_compile_test__");
+        customPack.setTextFile(
+          { namespace: "test", path: "shaders/tf-test.vsh" },
+          vertexSource
+        );
+        customPack.setTextFile(
+          { namespace: "test", path: "shaders/tf-test.fsh" },
+          `#version 300 es
+precision highp float;
+
+in vec4 vertexColor;
+out vec4 fragColor;
+
+void main() {
+  fragColor = vertexColor;
+}
+`
+        );
+        lib.addResourcePack(customPack);
+
+        const program = await lib.shaders.loadProgram(
+          { namespace: "test", path: "shaders/tf-test.vsh" },
+          { namespace: "test", path: "shaders/tf-test.fsh" }
+        );
+
+        const shaderManager = lib.renderer.getShaderManager();
+        const pickingProgram = shaderManager?.getCompiledProgram(`${program.id}:picking`);
+        const tfProgram = shaderManager?.getCompiledProgram(`${program.id}:tf`);
+
+        return {
+          ok: !!pickingProgram && !!tfProgram,
+          hasPicking: !!pickingProgram,
+          hasTF: !!tfProgram,
+          error: !pickingProgram ? "Missing picking variant" : !tfProgram ? "Missing TF variant" : undefined,
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    });
+
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+    expect(result.ok).toBe(true);
+  });
+
   it("compiles a patched picking variant for the sample custom vertex shader", async () => {
     if (!page) throw new Error("No browser page");
 

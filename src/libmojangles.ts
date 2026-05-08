@@ -172,6 +172,7 @@ class LibmojanglesImpl implements Libmojangles {
       shadowOffset: options?.shadowOffset,
       shadowColor: options?.shadowColor,
       generatePicking: true,
+      transformFeedback: options?.transformFeedback,
     });
 
     const anchorX = options?.anchorX ?? "left";
@@ -186,66 +187,37 @@ class LibmojanglesImpl implements Libmojangles {
     modelView[13] = y;
 
     const cachePicking = options?.cachePicking ?? false;
+    const transformFeedback = options?.transformFeedback ?? false;
 
     const state: Partial<RenderState> = {
       ...options,
       projectionMatrix: this.renderer.getProjectionMatrix(),
       modelViewMatrix: modelView,
       cachePicking,
+      transformFeedback,
       componentUniforms: options?.uniforms,
     };
 
     this.renderer.drawTextWithPicking(mesh, state);
     this.lastPickingMesh = mesh;
 
-    if (cachePicking) {
-      return this.computeDrawTextResult(text, mesh, scale, x, y);
+    if (transformFeedback || cachePicking) {
+      return this.computeDrawTextResult(text);
     }
   }
 
   private computeDrawTextResult(
-    text: string | TextComponent,
-    mesh: TextMeshGroup,
-    scale: number,
-    offsetX: number,
-    offsetY: number
+    text: string | TextComponent
   ): DrawTextResult {
     const ranges = this.parser.parseComponentRanges(text);
     const drawnComponents: DrawnComponent[] = [];
 
-    const cache = this.renderer.getPickingCache();
-    const size = this.renderer.getPickingSize();
-    if (!cache || size.width === 0 || size.height === 0) {
+    const tfResult = this.renderer.getTFBBoxResult();
+    const glyphBounds = tfResult ?? this.computeGlyphBoundsFromCache();
+    if (!glyphBounds) {
       return { components: drawnComponents };
     }
 
-    const glyphBounds = new Map<number, { minX: number; minY: number; maxX: number; maxY: number }>();
-
-    let pixelCount = 0;
-    for (let y = 0; y < size.height; y++) {
-      for (let x = 0; x < size.width; x++) {
-        const idx = (y * size.width + x) * 4;
-        const pixel = cache[idx] ?? 0;
-        if (pixel === 0 && cache[idx + 1] === 0 && cache[idx + 2] === 0) {
-          continue;
-        }
-        if (cache[idx + 3] === 0) continue;
-
-        pixelCount++;
-        const encoded = (cache[idx]! << 16) | (cache[idx + 1]! << 8) | cache[idx + 2]!;
-        const sourceIndex = encoded - 1;
-
-        let bounds = glyphBounds.get(sourceIndex);
-        if (!bounds) {
-          bounds = { minX: x, minY: y, maxX: x, maxY: y };
-          glyphBounds.set(sourceIndex, bounds);
-        }
-        bounds.minX = Math.min(bounds.minX, x);
-        bounds.minY = Math.min(bounds.minY, y);
-        bounds.maxX = Math.max(bounds.maxX, x);
-        bounds.maxY = Math.max(bounds.maxY, y);
-      }
-    }
     for (const range of ranges) {
       const [start, end] = range.sourceRange;
       let minX = Infinity;
@@ -275,6 +247,42 @@ class LibmojanglesImpl implements Libmojangles {
     }
 
     return { components: drawnComponents };
+  }
+
+  private computeGlyphBoundsFromCache(): Map<number, { minX: number; minY: number; maxX: number; maxY: number }> | null {
+    const cache = this.renderer.getPickingCache();
+    const size = this.renderer.getPickingSize();
+    if (!cache || size.width === 0 || size.height === 0) {
+      return null;
+    }
+
+    const glyphBounds = new Map<number, { minX: number; minY: number; maxX: number; maxY: number }>();
+
+    for (let y = 0; y < size.height; y++) {
+      for (let x = 0; x < size.width; x++) {
+        const idx = (y * size.width + x) * 4;
+        const pixel = cache[idx] ?? 0;
+        if (pixel === 0 && cache[idx + 1] === 0 && cache[idx + 2] === 0) {
+          continue;
+        }
+        if (cache[idx + 3] === 0) continue;
+
+        const encoded = (cache[idx]! << 16) | (cache[idx + 1]! << 8) | cache[idx + 2]!;
+        const sourceIndex = encoded - 1;
+
+        let bounds = glyphBounds.get(sourceIndex);
+        if (!bounds) {
+          bounds = { minX: x, minY: y, maxX: x, maxY: y };
+          glyphBounds.set(sourceIndex, bounds);
+        }
+        bounds.minX = Math.min(bounds.minX, x);
+        bounds.minY = Math.min(bounds.minY, y);
+        bounds.maxX = Math.max(bounds.maxX, x);
+        bounds.maxY = Math.max(bounds.maxY, y);
+      }
+    }
+
+    return glyphBounds;
   }
 
   pick(x: number, y: number): PickResult | null {

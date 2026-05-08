@@ -31,6 +31,7 @@ export type VertexGeneratorOptions = {
   shadowColor?: Color;
   generatePicking?: boolean;
   cachePicking?: boolean;
+  transformFeedback?: boolean;
   scale?: number;
 };
 

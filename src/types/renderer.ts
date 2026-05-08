@@ -97,6 +97,7 @@ export type RenderState = {
   fogColor: Color;
   programId: string;
   cachePicking?: boolean;
+  transformFeedback?: boolean;
   componentUniforms?: Record<string, ComponentUniforms>;
 };
 
@@ -138,6 +139,7 @@ export interface Renderer {
   readPickingBuffer(x: number, y: number): Uint8Array;
   getPickingCache(): Uint8Array | null;
   getPickingSize(): { width: number; height: number };
+  getTFBBoxResult(): Map<number, { minX: number; minY: number; maxX: number; maxY: number }> | null;
   resize(width: number, height: number): void;
   dispose(): void;
 }

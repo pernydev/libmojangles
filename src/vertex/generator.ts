@@ -45,7 +45,7 @@ export class VertexGeneratorImpl implements VertexGenerator {
     const lightmapUV = options?.lightmapUV ?? DEFAULT_LIGHTMAP;
     const generateShadow = options?.generateShadow ?? true;
     const shadowOffsetBase = options?.shadowOffset ?? [SHADOW_OFFSET, SHADOW_OFFSET];
-    const generatePicking = options?.generatePicking ?? false;
+    const generatePicking = options?.generatePicking || options?.transformFeedback || false;
     const scale = options?.scale ?? 1;
 
     const shadowOffset: [number, number] = [

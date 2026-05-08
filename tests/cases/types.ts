@@ -19,6 +19,7 @@ export interface TestCase {
     fragment?: string;
   };
   uniforms?: Record<string, ComponentUniforms>;  // per-component custom uniforms
+  transformFeedback?: boolean;
   expect: ImageExpectation | PixelExpectation | BboxExpectation;
 }
 

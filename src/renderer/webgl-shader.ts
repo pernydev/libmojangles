@@ -146,6 +146,10 @@ function getPickingProgramId(programId: string): string {
   return `${programId}:picking`;
 }
 
+function getTFProgramId(programId: string): string {
+  return `${programId}:tf`;
+}
+
 export class WebGLShaderManager implements ShaderManager {
   private programs = new Map<string, ShaderProgram>();
   private compiledPrograms = new Map<string, CompiledProgram>();
@@ -175,6 +179,17 @@ export class WebGLShaderManager implements ShaderManager {
       PICKING_FRAGMENT_SHADER
     );
     this.programs.set("picking", this.pickingProgram);
+
+    try {
+      const tfCompiled = this.compileTFProgram(
+        PICKING_VERTEX_SHADER,
+        PICKING_FRAGMENT_SHADER,
+        ["gl_Position", "v_color"]
+      );
+      this.compiledPrograms.set(getTFProgramId("text"), tfCompiled);
+    } catch {
+      // TF variant not critical for builtin shader
+    }
   }
 
   private createBuiltinProgram(
@@ -357,6 +372,96 @@ export class WebGLShaderManager implements ShaderManager {
     const vs = this.compileShader(gl.VERTEX_SHADER, vertexSource);
     const fs = this.compileShader(gl.FRAGMENT_SHADER, fragmentSource);
     const program = this.createProgramObject(vs, fs, true);
+
+    try {
+      await this.waitForProgramLink(program);
+      return this.buildCompiledProgram(program, vs, fs);
+    } catch (error) {
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+      throw error;
+    }
+  }
+
+  private compileTFProgram(
+    vertexSource: string,
+    fragmentSource: string,
+    varyings: string[] = ["gl_Position", "vertexPickColor"]
+  ): CompiledProgram {
+    const gl = this.gl;
+
+    const vs = this.compileShader(gl.VERTEX_SHADER, vertexSource);
+    const fs = this.compileShader(gl.FRAGMENT_SHADER, fragmentSource);
+
+    const program = gl.createProgram()!;
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+
+    for (const [name, location] of Object.entries(MINECRAFT_ATTR_BINDINGS)) {
+      gl.bindAttribLocation(program, location, name);
+    }
+
+    gl.transformFeedbackVaryings(program, varyings, gl.INTERLEAVED_ATTRIBS);
+
+    gl.linkProgram(program);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      const error = gl.getProgramInfoLog(program);
+      gl.deleteProgram(program);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+      throw new Error(`Failed to link TF program: ${error}`);
+    }
+
+    gl.deleteShader(vs);
+    gl.deleteShader(fs);
+
+    const uniforms = new Map<string, WebGLUniformLocation>();
+    const numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+    for (let i = 0; i < numUniforms; i++) {
+      const info = gl.getActiveUniform(program, i);
+      if (info) {
+        const loc = gl.getUniformLocation(program, info.name);
+        if (loc) uniforms.set(info.name, loc);
+      }
+    }
+
+    const attributes = new Map<string, number>();
+    const numAttributes = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+    for (let i = 0; i < numAttributes; i++) {
+      const info = gl.getActiveAttrib(program, i);
+      if (info) {
+        attributes.set(info.name, gl.getAttribLocation(program, info.name));
+      }
+    }
+
+    return { program, uniforms, attributes };
+  }
+
+  private async compileTFProgramAsync(
+    vertexSource: string,
+    fragmentSource: string
+  ): Promise<CompiledProgram> {
+    const gl = this.gl;
+
+    const vs = this.compileShader(gl.VERTEX_SHADER, vertexSource);
+    const fs = this.compileShader(gl.FRAGMENT_SHADER, fragmentSource);
+
+    const program = gl.createProgram()!;
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+
+    for (const [name, location] of Object.entries(MINECRAFT_ATTR_BINDINGS)) {
+      gl.bindAttribLocation(program, location, name);
+    }
+
+    gl.transformFeedbackVaryings(
+      program,
+      ["gl_Position", "vertexPickColor"],
+      gl.INTERLEAVED_ATTRIBS
+    );
+
+    gl.linkProgram(program);
 
     try {
       await this.waitForProgramLink(program);
@@ -622,14 +727,27 @@ export class WebGLShaderManager implements ShaderManager {
     this.programs.set(programId, program);
 
     // Create picking variant with same vertex shader + Minecraft-compatible picking fragment shader
+    const pickingVertexSource = injectPickingPassThrough(vertexSource);
     const pickingId = getPickingProgramId(programId);
     if (!this.compiledPrograms.has(pickingId)) {
-      const pickingVertexSource = injectPickingPassThrough(vertexSource);
       const pickingCompiled = await this.compileProgramWithBindingsAsync(
         pickingVertexSource,
         MINECRAFT_PICKING_FRAGMENT_SHADER
       );
       this.compiledPrograms.set(pickingId, pickingCompiled);
+    }
+
+    const tfId = getTFProgramId(programId);
+    if (!this.compiledPrograms.has(tfId)) {
+      try {
+        const tfCompiled = await this.compileTFProgramAsync(
+          pickingVertexSource,
+          MINECRAFT_PICKING_FRAGMENT_SHADER
+        );
+        this.compiledPrograms.set(tfId, tfCompiled);
+      } catch {
+        // TF variant may fail for exotic shaders — bbox falls back to legacy path
+      }
     }
 
     return program;
@@ -668,6 +786,12 @@ export class WebGLShaderManager implements ShaderManager {
     if (pickingCompiled) {
       this.gl.deleteProgram(pickingCompiled.program);
       this.compiledPrograms.delete(pickingId);
+    }
+    const tfId = getTFProgramId(id);
+    const tfCompiled = this.compiledPrograms.get(tfId);
+    if (tfCompiled) {
+      this.gl.deleteProgram(tfCompiled.program);
+      this.compiledPrograms.delete(tfId);
     }
     this.programs.delete(id);
     this.programs.delete(pickingId);
@@ -717,4 +841,4 @@ export function createShaderManager(
   return new WebGLShaderManager(gl, resources);
 }
 
-export { getPickingProgramId };
+export { getPickingProgramId, getTFProgramId };

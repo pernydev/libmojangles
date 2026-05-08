@@ -18,6 +18,7 @@ interface TestConfig {
   resourcePackUrls: string[];
   shaderUrls?: { vertex?: string; fragment?: string };
   uniforms?: Record<string, ComponentUniforms>;
+  transformFeedback?: boolean;
 }
 
 declare global {
@@ -136,7 +137,8 @@ async function runTest(config: TestConfig): Promise<void> {
 
   window.__LAST_DRAW_RESULT__ = lib.drawText(text, screenX, screenY, {
     scale: viewport.guiScale,
-    cachePicking: true,
+    cachePicking: !config.transformFeedback,
+    transformFeedback: config.transformFeedback ?? false,
     ...(programId ? { programId } : {}),
     ...(config.uniforms ? { uniforms: config.uniforms } : {}),
   });
