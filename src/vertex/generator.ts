@@ -66,7 +66,14 @@ export class VertexGeneratorImpl implements VertexGenerator {
       }
       return meshesByKey.get(key)!;
     };
-    const pickingData: { vertices: number[]; indices: number[] } = { vertices: [], indices: [] };
+    const pickingByComponent = new Map<string, { vertices: number[]; indices: number[]; componentId?: string }>();
+    const getPickingData = (componentId?: string) => {
+      const key = componentId ?? "";
+      if (!pickingByComponent.has(key)) {
+        pickingByComponent.set(key, { vertices: [], indices: [], componentId });
+      }
+      return pickingByComponent.get(key)!;
+    };
 
     for (const line of layout.lines) {
       for (const glyph of line.glyphs) {
@@ -82,7 +89,7 @@ export class VertexGeneratorImpl implements VertexGenerator {
         );
 
         if (generatePicking) {
-          this.generatePickingQuad(glyph, z, pickingData, scale);
+          this.generatePickingQuad(glyph, z, getPickingData(glyph.componentId), scale);
         }
 
         if (glyph.style.underlined) {
@@ -129,20 +136,27 @@ export class VertexGeneratorImpl implements VertexGenerator {
       });
     }
 
-    let pickingMesh: TextMesh | undefined;
+    let pickingMeshes: TextMesh[] | undefined;
 
-    if (generatePicking && pickingData.vertices.length > 0) {
-      pickingMesh = {
-        vertices: new Float32Array(pickingData.vertices),
-        indices: new Uint16Array(pickingData.indices),
-        textureId: "picking",
-        vertexCount: pickingData.vertices.length / PICKING_FLOATS_PER_VERTEX,
-        indexCount: pickingData.indices.length,
-        floatsPerVertex: PICKING_FLOATS_PER_VERTEX,
-      };
+    if (generatePicking && pickingByComponent.size > 0) {
+      pickingMeshes = [];
+      for (const [_key, data] of pickingByComponent) {
+        if (data.vertices.length > 0) {
+          pickingMeshes.push({
+            vertices: new Float32Array(data.vertices),
+            indices: new Uint16Array(data.indices),
+            textureId: "picking",
+            vertexCount: data.vertices.length / PICKING_FLOATS_PER_VERTEX,
+            indexCount: data.indices.length,
+            floatsPerVertex: PICKING_FLOATS_PER_VERTEX,
+            componentId: data.componentId,
+          });
+        }
+      }
+      if (pickingMeshes.length === 0) pickingMeshes = undefined;
     }
 
-    return { meshes, pickingMesh };
+    return { meshes, pickingMeshes };
   }
 
   generateForGlyph(glyph: PositionedGlyph, options?: VertexGeneratorOptions): Vertex[] {

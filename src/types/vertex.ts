@@ -20,7 +20,7 @@ export type TextMesh = {
 
 export type TextMeshGroup = {
   readonly meshes: TextMesh[];
-  readonly pickingMesh?: TextMesh;
+  readonly pickingMeshes?: TextMesh[];
 };
 
 export type VertexGeneratorOptions = {

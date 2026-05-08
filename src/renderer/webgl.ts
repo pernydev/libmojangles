@@ -403,7 +403,7 @@ export class WebGLRenderer implements Renderer {
   drawTextWithPicking(mesh: TextMeshGroup, state: Partial<RenderState>): void {
     this.drawText(mesh, state);
 
-    if (!mesh.pickingMesh || !this.shaders) return;
+    if (!mesh.pickingMeshes || mesh.pickingMeshes.length === 0 || !this.shaders) return;
 
     const gl = this.gl;
 
@@ -442,7 +442,9 @@ export class WebGLRenderer implements Renderer {
     if (mvLoc) gl.uniformMatrix4fv(mvLoc, false, modelView);
 
     gl.bindVertexArray(this.pickingVao);
-    this.drawPickingMesh(mesh.pickingMesh, compiled, state.componentUniforms);
+    for (const pickingMesh of mesh.pickingMeshes) {
+      this.drawPickingMesh(pickingMesh, compiled, state.componentUniforms);
+    }
     gl.bindVertexArray(null);
 
     if (this.enablePickingCache && this.pickingCache) {
