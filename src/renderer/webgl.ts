@@ -699,7 +699,9 @@ export class WebGLRenderer implements Renderer {
 
   resize(width: number, height: number): void {
     this.gl.viewport(0, 0, width, height);
-    this.projectionMatrix = createOrthographicMatrix(0, width, height, 0, -1000, 1000);
+    const drawingWidth = this.gl.drawingBufferWidth;
+    const drawingHeight = this.gl.drawingBufferHeight;
+    this.projectionMatrix = createOrthographicMatrix(0, drawingWidth, drawingHeight, 0, -1000, 1000);
   }
 
   getProjectionMatrix(): Mat4 {
