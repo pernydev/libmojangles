@@ -88,7 +88,7 @@ export class VertexGeneratorImpl implements VertexGenerator {
           scale
         );
 
-        if (generatePicking) {
+        if (generatePicking && glyph.glyph.textureId) {
           this.generatePickingQuad(glyph, z, getPickingData(glyph.componentId), scale);
         }
 
