@@ -231,6 +231,7 @@ export class WebGLRenderer implements Renderer {
   private projectionMatrix: Mat4 = createIdentityMatrix();
   private modelViewMatrix: Mat4 = createIdentityMatrix();
 
+
   constructor(canvas: HTMLCanvasElement) {
     const gl = canvas.getContext("webgl2", {
       alpha: true,
@@ -322,6 +323,7 @@ export class WebGLRenderer implements Renderer {
 
     this.tfFeedback = gl.createTransformFeedback();
     this.tfBuffer = gl.createBuffer();
+
   }
 
   private initPickingFramebuffer(width: number, height: number): void {
@@ -388,9 +390,15 @@ export class WebGLRenderer implements Renderer {
     ctx.setUniform("u_modelView", modelView);
     ctx.setUniform("u_colorModulator", new Float32Array([colorMod.r, colorMod.g, colorMod.b, colorMod.a]));
 
+    this.setGlobalsUniforms(ctx, state);
     this.setFogUniforms(ctx, state);
 
     ctx.draw(mesh, state.componentUniforms);
+  }
+
+  private setGlobalsUniforms(ctx: RenderContext, state: Partial<RenderState>): void {
+    const screenSize = state.screenSize ?? [this.gl.drawingBufferWidth, this.gl.drawingBufferHeight];
+    ctx.setUniform("ScreenSize", new Float32Array(screenSize));
   }
 
   private setFogUniforms(ctx: RenderContext, state: Partial<RenderState>): void {

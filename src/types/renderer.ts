@@ -96,6 +96,7 @@ export type RenderState = {
   fogEnd: number;
   fogColor: Color;
   programId: string;
+  screenSize?: [number, number];
   cachePicking?: boolean;
   transformFeedback?: boolean;
   componentUniforms?: Record<string, ComponentUniforms>;
