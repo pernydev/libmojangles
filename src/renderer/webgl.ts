@@ -464,6 +464,12 @@ export class WebGLRenderer implements Renderer {
     if (projLoc) gl.uniformMatrix4fv(projLoc, false, projection);
     if (mvLoc) gl.uniformMatrix4fv(mvLoc, false, modelView);
 
+    const screenSizeLoc = compiled.uniforms.get("ScreenSize");
+    if (screenSizeLoc) {
+      const screenSize = state.screenSize ?? [this.context.width, this.context.height];
+      gl.uniform2f(screenSizeLoc, screenSize[0]!, screenSize[1]!);
+    }
+
     gl.bindVertexArray(this.pickingVao);
     for (const pickingMesh of mesh.pickingMeshes) {
       this.drawPickingMesh(pickingMesh, compiled, state.componentUniforms);
@@ -566,6 +572,12 @@ export class WebGLRenderer implements Renderer {
       const mvLoc = compiled.uniforms.get("u_modelView") ?? compiled.uniforms.get("ModelViewMat");
       if (projLoc) gl.uniformMatrix4fv(projLoc, false, projection);
       if (mvLoc) gl.uniformMatrix4fv(mvLoc, false, modelView);
+
+      const screenSizeLoc = compiled.uniforms.get("ScreenSize");
+      if (screenSizeLoc) {
+        const screenSize = state.screenSize ?? [viewportWidth, viewportHeight];
+        gl.uniform2f(screenSizeLoc, screenSize[0]!, screenSize[1]!);
+      }
 
       if (state.componentUniforms && pickingMesh.componentId) {
         const uniforms = state.componentUniforms[pickingMesh.componentId];
