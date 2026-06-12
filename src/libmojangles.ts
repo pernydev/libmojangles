@@ -178,20 +178,29 @@ class LibmojanglesImpl implements Libmojangles {
     const anchorX = options?.anchorX ?? "left";
     const anchorOffset = anchorX === "center" ? layout.width / 2 : anchorX === "right" ? layout.width : 0;
 
+    // Match Minecraft's GUI convention: ProjMat covers GUI-scaled coordinates
+    // (ortho over fbSize/guiScale), so ProjMat[0][0] = 2*guiScale/fbWidth and
+    // shaders can recover the gui scale from ScreenSize.x * ProjMat[0][0] / 2.
+    // The modelView stays in GUI units. The composite matrix is identical to
+    // the previous pixel-space ortho + scaled modelView.
+    const projection = new Float32Array(this.renderer.getProjectionMatrix());
+    projection[0]! *= scale;
+    projection[5]! *= scale;
+
     const modelView = new Float32Array(16);
-    modelView[0] = scale;
-    modelView[5] = scale;
+    modelView[0] = 1;
+    modelView[5] = 1;
     modelView[10] = 1;
     modelView[15] = 1;
-    modelView[12] = x - anchorOffset * scale;
-    modelView[13] = y;
+    modelView[12] = (x - anchorOffset * scale) / scale;
+    modelView[13] = y / scale;
 
     const cachePicking = options?.cachePicking ?? false;
     const transformFeedback = options?.transformFeedback ?? false;
 
     const state: Partial<RenderState> = {
       ...options,
-      projectionMatrix: this.renderer.getProjectionMatrix(),
+      projectionMatrix: projection,
       modelViewMatrix: modelView,
       cachePicking,
       transformFeedback,
