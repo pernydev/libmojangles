@@ -127,8 +127,7 @@ async function runTest(config: TestConfig): Promise<void> {
 
   if (position.centerX) {
     const glyphs = lib.parser.parse(text);
-    const rawWidth = lib.layout.measureWidth(glyphs, fontResolver);
-    const textWidthGui = Math.ceil(rawWidth);
+    const textWidthGui = lib.layout.measureWidth(glyphs, fontResolver);
     const guiX = Math.floor(guiWidth / 2) - Math.floor(textWidthGui / 2);
     screenX = guiX * viewport.guiScale;
   } else {

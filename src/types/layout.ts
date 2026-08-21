@@ -40,6 +40,7 @@ export interface TextLayoutEngine {
     options?: LayoutOptions
   ): LayoutResult;
   measureWidth(glyphs: StyledGlyph[], font: Font | FontResolver): number;
+  measureWidthExact(glyphs: StyledGlyph[], font: Font | FontResolver): number;
   measureHeight(
     glyphs: StyledGlyph[],
     font: Font | FontResolver,

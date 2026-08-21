@@ -416,8 +416,7 @@ function startRenderLoop() {
     if (state.centerX) {
       try {
         const glyphs = lib.parser.parse(state.textComponent);
-        const rawWidth = lib.layout.measureWidth(glyphs, fontResolver);
-        const textWidthGui = Math.ceil(rawWidth);
+        const textWidthGui = lib.layout.measureWidth(glyphs, fontResolver);
         const guiX = Math.floor(guiWidth / 2) - Math.floor(textWidthGui / 2);
         screenX = guiX * state.guiScale;
       } catch {

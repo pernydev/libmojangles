@@ -132,7 +132,8 @@ export class TextLayoutEngineImpl implements TextLayoutEngine {
     };
   }
 
-  measureWidth(glyphs: StyledGlyph[], font: Font | FontResolver): number {
+  // Mirrors StringSplitter.stringWidth: the exact, unrounded advance sum.
+  measureWidthExact(glyphs: StyledGlyph[], font: Font | FontResolver): number {
     const resolveFont = toResolver(font);
     let width = 0;
     for (const glyph of glyphs) {
@@ -143,6 +144,10 @@ export class TextLayoutEngineImpl implements TextLayoutEngine {
       }
     }
     return width;
+  }
+
+  measureWidth(glyphs: StyledGlyph[], font: Font | FontResolver): number {
+    return Math.ceil(this.measureWidthExact(glyphs, font));
   }
 
   measureHeight(
